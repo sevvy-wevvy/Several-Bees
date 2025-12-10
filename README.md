@@ -1,5 +1,5 @@
 # SeveralBees (WIP)
-## A gorilla tag dependance for making easy UI's, running Lua mods, and so much more.
+## A library for making easy UI's, installing and browsing mods in game, and so much more.
 ## Docs
 Want to use this lib for your own projects? Or maybe fork this lib to a difrent game? [Check out the docs!](https://github.com/sevvy-wevvy/Several-Bees/blob/main/docs.md)
 ## Disclamer
