@@ -38,7 +38,7 @@ Want to use this lib for your own projects, or maybe fork it to a different game
   <small>
     <b>Several Bees</b> is released under the  
     <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank">GPL-3.0 License</a>.  
-    This means you’re free to use, modify, and share the code — as long as you:
+    This means you’re free to use, modify, and share the code. As long as you:
   </small>
 </p>
 
