@@ -30,6 +30,30 @@ Want to use this lib for your own projects, or maybe fork it to a different game
 <a href="https://github.com/sevvy-wevvy/Several-Bees/blob/main/docs.md">Check out the Docs!</a>
 </p>
 
+<h2 align="center">License</h2>
+
+<p align="center">
+  <small>
+    <b>Several Bees</b> is released under the  
+    <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank">GPL-3.0 License</a>.  
+    This means you’re free to use, modify, and share the code — as long as you:
+  </small>
+</p>
+
+<p align="center">
+  <small>
+    • Keep your changes <b>open-source</b> under the same license. <br>
+    • <b>Give proper credit</b> to the project and original contributors. <br>
+    • Include a copy of the <a href="https://www.gnu.org/licenses/gpl-3.0.html">GPL-3.0 license</a> with your distribution.
+  </small>
+</p>
+
+<p align="center">
+  <small>
+    In short: play fair, keep it open, and give credit where it’s due. 🐝
+  </small>
+</p>
+
 <h2 align="center">Disclaimer</h2>
 
 <h4 align="center">
