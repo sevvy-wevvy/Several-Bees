@@ -95,6 +95,17 @@ Extra.Instance.MakeObjectVisible(MyCoolGameObject, true);
 Extra.Instance.SetTheme(Color.black, Color.white, float 0.2f);
 ```
 
+## Asset loading
+First run ``Extra.AssetLoad("MyCoolNameSpcae.MyCoolBundle");`` to properly load the assets from your bundle. Recommeneded you do this on plugin awake. To load an asset from your bundle do somthing like the below.
+```c#
+GameObject coolObjectSet = null;
+if (Extra.Instance.TryGetAsset<GameObject>("MyCoolNameSpcae.MyCoolBundle", "My Cool Object", out coolObjectSet))
+{
+    GameObject coolObject = Instantiate(coolObjectSet);
+    //Work with "coolObject" here
+}
+```
+
 ## Extra Varible
 In the main Several Bees script there are few public parivle that may be of use to you.
 ```c#
