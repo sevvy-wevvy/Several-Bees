@@ -19,8 +19,7 @@
 <p align="center">
   Several Bees is a library for easy, intuitive UIs, and much more.<br>
   Do you like this lib? If so, please let me know!  
-  <a href="https://sevvy-wevvy.com/discord">Discord</a> &
-  <a href="https://sevvy-wevvy.com/patreon">Patreon</a>
+  <a href="https://sevvy-wevvy.com/discord">Discord</a>
 </p>
 
 <details>
@@ -55,6 +54,15 @@ Want to use this lib for your own projects, or maybe fork it to a different game
   <small>
     In short: play fair, keep it open, and give credit where it’s due.
   </small>
+</p>
+</details>
+
+<details>
+<summary align="center"><b>🩷 Donate 🩷</b></summary>
+
+<p align="center">
+I accept donations over few platforms, below are where you can help support my projects and more.
+<b>Patreon</b> - https://sevvy-wevvy.com/patreon
 </p>
 </details>
 
