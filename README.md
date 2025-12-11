@@ -1,4 +1,4 @@
-<h1 align="center">Several Bees</h1>
+<h1 align="center">🐝 Several Bees 🐝</h1>
 
 <p align="center">
 <b>A library for making easy UIs, installing and browsing mods in-game, and much more.</b>
@@ -23,14 +23,15 @@
   <a href="https://sevvy-wevvy.com/patreon">Patreon</a>
 </p>
 
-<h2 align="center">Docs</h2>
+<h2 align="center">📄 Docs 📄</h2>
 
 <p align="center">
 Want to use this lib for your own projects, or maybe fork it to a different game?  
 <a href="https://github.com/sevvy-wevvy/Several-Bees/blob/main/docs.md">Check out the Docs!</a>
 </p>
 
-<h2 align="center">License</h2>
+<details>
+<summary align="center">⚖️ License ⚖️</summary>
 
 <p align="center">
   <small>
@@ -50,9 +51,10 @@ Want to use this lib for your own projects, or maybe fork it to a different game
 
 <p align="center">
   <small>
-    In short: play fair, keep it open, and give credit where it’s due. 🐝
+    In short: play fair, keep it open, and give credit where it’s due.
   </small>
 </p>
+</details>
 
 <h2 align="center">Disclaimer</h2>
 
