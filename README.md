@@ -27,7 +27,7 @@
 
 <p align="center">
 Want to use this lib for your own projects, or maybe fork it to a different game?  
-<a href="[https://sevvy-wevvy.com/patreon](https://github.com/sevvy-wevvy/Several-Bees/blob/main/docs.md)">Check out the Docs!</a>
+<a href="https://github.com/sevvy-wevvy/Several-Bees/blob/main/docs.md">Check out the Docs!</a>
 </p>
 
 <h2 align="center">Disclaimer</h2>
