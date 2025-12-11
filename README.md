@@ -1,7 +1,7 @@
 # Several Bees (WIP)
 ## A library for making easy UI's, installing and browsing mods in game, and so much more.
-Several Bees is a library for easy intutive UI's. If you can figure out how to fix the asset bundle, please let me know.  
-https://sevvy-wevvy.com/discord
+Several Bees is a library for easy intutive UI's, and much more.  
+Do you like this lib? if so please let me know! https://sevvy-wevvy.com/discord https://sevvy-wevvy.com/patreon
 ## Docs
 Want to use this lib for your own projects? Or maybe fork this lib to a difrent game? [Check out the docs!](https://github.com/sevvy-wevvy/Several-Bees/blob/main/docs.md)
 ## Disclamer
