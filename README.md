@@ -1,5 +1,5 @@
 <div align="center">
- <header></header>Several Bees (WIP)</div>header
+ <header>Several Bees (WIP)</header>
  A library for making easy UI's, installing and browsing mods in game, and so much more.
  
  <a href="https://github.com/sevvy-wevvy/Several-Bees/releases/latest">
