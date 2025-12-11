@@ -39,7 +39,7 @@ Portions of the materials contained herein are property of Another Axiom LLC. ©
 
 ---
 <p align="center">
-  <small>
+  <sub>
     To enter test mode for the lib (such as unlocking UI access in versions without the UI enabled and enabling debugging features), press <b>T + E + S</b> together.
-  </small>
+  </sub>
 </p>
