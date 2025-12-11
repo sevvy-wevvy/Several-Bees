@@ -3,6 +3,10 @@
 <div align="center">
  <a href="https://github.com/sevvy-wevvy/Several-Bees/releases/latest">
  <img src="https://img.shields.io/github/downloads/sevvy-wevvy/Several-Bees/total?label=Downloads&style=flat-square"<img></a>
+ 
+ <a href="https://github.com/sevvy-wevvy/Several-Bees/releases/latest">
+  <img src="https://img.shields.io/github/v/release/sevvy-wevvy/Several-Bees?label=Version&style=flat-square&color=red"></a>
+  
  <a href="https://discord.gg/Fjwnh4ygPZ">
  <img src="https://img.shields.io/discord/1074928203820441610?label=Discord&style=flat-square"</img></a>
 </div>
