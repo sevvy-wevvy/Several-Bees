@@ -1,6 +1,6 @@
 <div align="center">
- # Several Bees (WIP)
- ## A library for making easy UI's, installing and browsing mods in game, and so much more.
+ <header></header>Several Bees (WIP)</div>header
+ A library for making easy UI's, installing and browsing mods in game, and so much more.
  
  <a href="https://github.com/sevvy-wevvy/Several-Bees/releases/latest">
  <img src="https://img.shields.io/github/downloads/sevvy-wevvy/Several-Bees/total?label=Downloads&style=for-the-badge"<img></a>
