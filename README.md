@@ -1,4 +1,4 @@
-<h1 align="center">Several Bees (WIP)</h1>
+<h1 align="center">Several Bees</h1>
 
 <p align="center">
 <b>A library for making easy UIs, installing and browsing mods in-game, and much more.</b>
@@ -23,12 +23,14 @@
   <a href="https://sevvy-wevvy.com/patreon">Patreon</a>
 </p>
 
-## Docs
+<h2 align="center">Docs</h2>
 
+<p align="center">
 Want to use this lib for your own projects, or maybe fork it to a different game?  
-[Check out the Docs!](https://github.com/sevvy-wevvy/Several-Bees/blob/main/docs.md)
+<a href="[https://sevvy-wevvy.com/patreon](https://github.com/sevvy-wevvy/Several-Bees/blob/main/docs.md)">Check out the Docs!</a>
+</p>
 
-## Disclaimer
+<h2 align="center">Disclaimer</h2>
 
 <h4 align="center">
 This product is not affiliated with Gorilla Tag or Another Axiom LLC and is not endorsed or otherwise sponsored by Another Axiom LLC.  
