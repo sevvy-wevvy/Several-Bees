@@ -1,21 +1,40 @@
-# Several Bees (WIP)
-## A library for making easy UI's, installing and browsing mods in game, and so much more.
-<div align="center"> 
- <a href="https://github.com/sevvy-wevvy/Several-Bees/releases/latest">
- <img src="https://img.shields.io/github/downloads/sevvy-wevvy/Several-Bees/total?label=Downloads&style=for-the-badge"<img></a>
- 
- <a href="https://github.com/sevvy-wevvy/Several-Bees/releases/latest">
- <img src="https://img.shields.io/github/v/release/sevvy-wevvy/Several-Bees?label=Version&style=for-the-badge&color=red"</img></a>
-  
- <a href="https://discord.gg/Fjwnh4ygPZ">
- <img src="https://img.shields.io/discord/1074928203820441610?label=Discord&style=for-the-badge"</img></a>
-</div>
-Several Bees is a library for easy intutive UI's, and much more.  
-Do you like this lib? if so please let me know! https://sevvy-wevvy.com/discord https://sevvy-wevvy.com/patreon
+<h1 align="center">Several Bees (WIP)</h1>
+
+<p align="center">
+<b>A library for making easy UIs, installing and browsing mods in-game, and much more.</b>
+</p>
+
+<p align="center">
+  <a href="https://github.com/sevvy-wevvy/Several-Bees/releases/latest">
+    <img src="https://img.shields.io/github/downloads/sevvy-wevvy/Several-Bees/total?label=Downloads&style=for-the-badge" alt="Downloads">
+  </a>
+  <a href="https://github.com/sevvy-wevvy/Several-Bees/releases/latest">
+    <img src="https://img.shields.io/github/v/release/sevvy-wevvy/Several-Bees?label=Version&style=for-the-badge&color=red" alt="Version">
+  </a>
+  <a href="https://discord.gg/Fjwnh4ygPZ">
+    <img src="https://img.shields.io/discord/1074928203820441610?label=Discord&style=for-the-badge" alt="Discord">
+  </a>
+</p>
+
+<p align="center">
+  Several Bees is a library for easy, intuitive UIs, and much more.<br>
+  Do you like this lib? If so, please let me know!  
+  <a href="https://sevvy-wevvy.com/discord">Discord</a> |
+  <a href="https://sevvy-wevvy.com/patreon">Patreon</a>
+</p>
+
 ## Docs
-Want to use this lib for your own projects? Or maybe fork this lib to a difrent game? [Check out the docs!](https://github.com/sevvy-wevvy/Several-Bees/blob/main/docs.md)
-## Disclamer
+
+Want to use this lib for your own projects, or maybe fork it to a different game?  
+[Check out the Docs!](https://github.com/sevvy-wevvy/Several-Bees/blob/main/docs.md)
+
+## Disclaimer
+
 <h4 align="center">
-This product is not affiliated with Gorilla Tag or Another Axiom LLC and is not endorsed or otherwise sponsored by Another Axiom LLC. Portions of the materials contained herein are property of Another Axiom LLC. © 2021 Another Axiom LLC.
+This product is not affiliated with Gorilla Tag or Another Axiom LLC and is not endorsed or otherwise sponsored by Another Axiom LLC.  
+Portions of the materials contained herein are property of Another Axiom LLC. © 2021 Another Axiom LLC.
 </h4>
-To enter test mode for the lib, such as unlocking UI accses in versions without the UI enabled and more debuging fetures press T, E, and S together.
+
+---
+
+To enter test mode for the lib (such as unlocking UI access in versions without the UI enabled and enabling debugging features), press **T + E + S** together.
