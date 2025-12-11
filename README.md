@@ -23,12 +23,14 @@
   <a href="https://sevvy-wevvy.com/patreon">Patreon</a>
 </p>
 
-<h2 align="center">📄 Docs 📄</h2>
+<details>
+<summary align="center">📄 Docs 📄</summary>
 
 <p align="center">
 Want to use this lib for your own projects, or maybe fork it to a different game?  
 <a href="https://github.com/sevvy-wevvy/Several-Bees/blob/main/docs.md">Check out the Docs!</a>
 </p>
+</details>
 
 <details>
 <summary align="center">⚖️ License ⚖️</summary>
