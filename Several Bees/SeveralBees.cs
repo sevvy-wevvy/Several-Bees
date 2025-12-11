@@ -12,11 +12,13 @@ using System.Threading;
 using System.Reflection;
 using UnityEngine.InputSystem.Controls;
 using BepInEx.Configuration;
+using System.Threading.Tasks;
 
 namespace SeveralBees
 {
     public class SeveralBees : MonoBehaviour
     {
+        internal bool IsLatestVersion = true;
         public bool TestMode = false;
         public static SeveralBees Instance { get; private set; }
 
@@ -62,7 +64,7 @@ namespace SeveralBees
             UnityEngine.Debug.Log("[Several Bees] Several Bees Instance Set");
         }
 
-        private void Start()
+        private async void Start()
         {
             try
             {
@@ -95,7 +97,7 @@ namespace SeveralBees
 
             try
             {
-                Create();
+                await Create();
             }
             catch (Exception e)
             {
@@ -118,6 +120,8 @@ namespace SeveralBees
 
         internal AssetBundle Bundle;
 
+        internal List<Collider> ObjectColliders = new List<Collider>();
+
         internal void ReMakeModManger()
         {
             if (ModManegerParent != null)
@@ -137,7 +141,7 @@ namespace SeveralBees
             GameObject gameObject = new GameObject("Several Bees |" + ErrorInt + "| " + Error);
             gameObject.GetComponentInParent<Transform>().SetParent(ErrorParent.transform);
         }
-        public void Create()
+        public async Task Create()
         {
             ModManegerParent = new GameObject("Several Bees || Mod Manger");
 
@@ -234,14 +238,59 @@ namespace SeveralBees
                     textObj.transform.SetParent(ModManegerParent.transform);
                     ModMangerText.fontSize = 0.5f;
                     ModMangerText.alignment = TextAlignmentOptions.Center;
-                    ModMangerText.gameObject.transform.position = new Vector3(0f, 0.4f, 0f);
+                    ModMangerText.gameObject.transform.position = new Vector3(0f, 0.38f, -0.01f);
                     ModMangerText.color = Color.white;
+                    textObj.GetComponent<RectTransform>().sizeDelta = new Vector2(0.4f, 0.35f);
+                    ModMangerText.enableAutoSizing = true;
+                    ModMangerText.fontSizeMax = 0.5f;
+                    ModMangerText.fontSizeMin = 0.2f;
 
-                    GameObject Computer = Bundle.LoadAsset<GameObject>("Sb Computer Variant");
-                    Computer.transform.SetParent(ModManegerParent.transform);
-                    foreach(Transform Child in Computer.transform)
+                    GameObject Computer = null;
+                    GameObject computerPrefab = null;
+                    if (AssetLoader.TryGetAsset<GameObject>("Sb Computer Variant", out computerPrefab))
                     {
-                        Extra.Instance.MakeObjectVisible(Child.gameObject, false);
+                        Computer = Instantiate(computerPrefab);
+                        Computer.transform.SetParent(ModManegerParent.transform);
+                        foreach (Transform Child in Computer.transform)
+                        {
+                            Extra.Instance.MakeObjectVisible(Child.gameObject, false);
+                            if(Child.name == "Up")
+                            {
+                                Child.AddComponent<Scripts.Button>().Name = "SB_Down_Button";
+                                Child.GetComponent<Scripts.Button>().Click += (bool Left) =>
+                                {
+                                    MmUp(Left);
+                                };
+                                Child.AddComponent<BoxCollider>();
+                            }
+                            else if (Child.name == "Down")
+                            {
+                                Child.AddComponent<Scripts.Button>().Name = "SB_Down_Button";
+                                Child.GetComponent<Scripts.Button>().Click += (bool Left) =>
+                                {
+                                    MmDown(Left);
+                                };
+                                Child.AddComponent<BoxCollider>();
+                            }
+                            else if (Child.name == "Select")
+                            {
+                                Child.AddComponent<Scripts.Button>().Name = "SB_Down_Button";
+                                Child.GetComponent<Scripts.Button>().Click += (bool Left) =>
+                                {
+                                    MmSelect(Left);
+                                };
+                                Child.AddComponent<BoxCollider>();
+                            }
+                            else
+                            {
+                                MeshCollider ocl67 = Child.AddComponent<MeshCollider>();
+                                ocl67.convex = true;
+                                ObjectColliders.Add(ocl67);
+                            }
+                        }
+                        Computer.transform.position = new Vector3(0.07f, 0.09f, -0.1563f);
+                        Computer.transform.rotation = Quaternion.Euler(0f, 180f, 0f);
+                        Computer.transform.localScale = new Vector3(0.15f, 0.15f, 0.15f);
                     }
                 }
 
@@ -430,6 +479,7 @@ namespace SeveralBees
                 Api.Instance.tokenListBackToken.Add("1", "Main");
                 Api.Instance.tokenListButtonInfo["1"] = new List<ModButtonInfo>
                 {
+                    new ModButtonInfo { buttonText = "<color=yellow>Credits</color>", isTogglable = false, method = () => Api.Instance.OpenMenu("7"), toolTip = "Opens the credits." },
                     new ModButtonInfo { buttonText = "Theme Settings", isTogglable = false, method = () => Api.Instance.OpenMenu("2"), toolTip = "Opens the theme settings." },
                 };
 
@@ -480,7 +530,8 @@ namespace SeveralBees
                 Api.Instance.tokenListButtonInfo["4"] = new List<ModButtonInfo>
                 {
                     new ModButtonInfo { buttonText = "Code/Dll Mod Browser", isTogglable = false, method = () => { Api.Instance.OpenMenu("5"); }, toolTip = "Opens the Code/Dll Mod Browser." },
-                    //new ModButtonInfo { buttonText = "Mod Config Editor", isTogglable = false, method = () => { Api.Instance.OpenMenu("6"); }, toolTip = "Opens the mod config editor." },
+                    // i made this config veiwer to see how hard it would be, it was really hard.
+                    new ModButtonInfo { buttonText = "Mod Config Info", isTogglable = false, method = () => { Api.Instance.OpenMenu("6"); }, toolTip = "Opens the mod config editor." },
                 };
 
                 Api.Instance.tokenList.Add("Code/Dll Mod Browser", "5");
@@ -490,17 +541,48 @@ namespace SeveralBees
                 {
                 };
 
-                Api.Instance.tokenList.Add("Mod Config Editor", "6");
+                Api.Instance.tokenList.Add("Code/Dll Mod Config Info", "6");
                 Api.Instance.tokenListVisable.Add("6", false);
                 Api.Instance.tokenListBackToken.Add("6", "4");
                 Api.Instance.tokenListButtonInfo["6"] = new List<ModButtonInfo>
                 {
                 };
 
+                Api.Instance.tokenList.Add("Credits", "7");
+                Api.Instance.tokenListVisable.Add("7", false);
+                Api.Instance.tokenListBackToken.Add("7", "1");
+                Api.Instance.tokenListButtonInfo["7"] = new List<ModButtonInfo>
+                {
+                    new ModButtonInfo { buttonText = "<color=purple>Sev</color>", isTogglable = false, toolTip = "Nearly everything." },
+                    new ModButtonInfo { buttonText = "<color=grey>Skellon</color>", isTogglable = false, toolTip = "Asset loader." },
+                };
+
+                Api.Instance.tokenList.Add("<color=red>Update</color>", "NotNew");
+                Api.Instance.tokenListVisable.Add("NotNew", false);
+                Api.Instance.tokenListBackToken.Add("NotNew", "NotNew");
+                Api.Instance.tokenListButtonInfo["NotNew"] = new List<ModButtonInfo>
+                {
+                    new ModButtonInfo { buttonText = "<color=red>Please Update</color>", isTogglable = false, toolTip = "Click 'Update' to update the mod." },
+                    new ModButtonInfo { buttonText = "<color=orange>Update</color>", method = () => InstallLatestMod(Config.ModDownload, ModBrowser.Instance.GetModName(Config.ModDownload)), isTogglable = false, toolTip = "Installs the latest version of Several Bees." },
+                    new ModButtonInfo { buttonText = "<color=yellow>GitHub</color>", method = () => 
+                    {
+                        string repoLink = Config.ModDownload;
+                        int index = repoLink.IndexOf("/releases/");
+                        if (index != -1)
+                        repoLink = repoLink.Substring(0, index);
+
+                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                        {
+                            FileName = repoLink,
+                            UseShellExecute = true
+                        });
+                    }, isTogglable = false, toolTip = "Opens the Several Bees GitHub." },
+                };
+
                 Settings.Load();
                 Settings.SetButtonNames();
                 RefreshModsList();
-                //RefreshConfigEditor();
+                RefreshConfigEditor();
             }
             catch (Exception e)
             {
@@ -511,22 +593,16 @@ namespace SeveralBees
         public void RefreshConfigEditor()
         {
             Api.Instance.tokenListButtonInfo["6"] = new List<ModButtonInfo>
-    {
-        new ModButtonInfo
-        {
-            buttonText = "<color=red>Loading...</color>",
-            toolTip = "Please wait while we load the mod config catalog. Time may vary depending on your disk speed."
-        },
-    };
+            {
+                new ModButtonInfo
+                {
+                    buttonText = "<color=red>Loading...</color>",
+                    toolTip = "Please wait while we load the mod config catalog. Time may vary depending on your disk speed."
+                },
+            };
 
             List<ModButtonInfo> Buttons = new List<ModButtonInfo>();
 
-            Buttons.Add(new ModButtonInfo
-            {
-                buttonText = "<color=orange>Apply/Restart Game</color>",
-                isTogglable = false,
-                toolTip = $"Restarts your game, internally applying your changes."
-            });
             Buttons.Add(new ModButtonInfo
             {
                 buttonText = "<color=red>Refresh</color>",
@@ -623,7 +699,6 @@ namespace SeveralBees
             Api.Instance.tokenListButtonInfo["6"] = Buttons;
         }
 
-
         internal void OpenModConfigPage(string ModName, string MakeShiftToken, List<string> Values, List<string> Acceptables, List<string> Description, List<string> Names)
         {
             List<ModButtonInfo> Buttons = new List<ModButtonInfo>();
@@ -666,8 +741,7 @@ namespace SeveralBees
                 {
                     buttonText = $"Value: {Values[r]}",
                     isTogglable = false,
-                    toolTip = $"The current setting of the config.",
-                    method = () => UpdateConfigValue(ModName, Values[r], NewValue)
+                    toolTip = $"The current setting of the config."
                 });
 
                 Buttons.Add(new ModButtonInfo
@@ -683,51 +757,6 @@ namespace SeveralBees
             Api.Instance.tokenListButtonInfo[MakeShiftToken] = Buttons;
 
             Api.Instance.OpenMenu(MakeShiftToken);
-        }
-
-        public void UpdateConfigValue(string configFilePath, string valueToReplace, string newValue)
-        {
-            try
-            {
-                if (!File.Exists(configFilePath))
-                {
-                    UnityEngine.Debug.LogWarning($"[Several Bees] Config file not found: {configFilePath}");
-                    return;
-                }
-
-                string[] lines = File.ReadAllLines(configFilePath);
-
-                for (int i = 0; i < lines.Length; i++)
-                {
-                    string trimmed = lines[i].Trim();
-
-                    if (string.IsNullOrEmpty(trimmed) || trimmed.StartsWith("#") || trimmed.StartsWith(";") || trimmed.StartsWith("["))
-                        continue;
-
-                    int eqIndex = trimmed.IndexOf('=');
-                    if (eqIndex < 0) continue;
-
-                    string key = trimmed.Substring(0, eqIndex).Trim();
-                    string value = trimmed.Substring(eqIndex + 1).Trim();
-
-                    int semicolonIndex = value.IndexOf(';');
-                    string pureValue = semicolonIndex >= 0 ? value.Substring(0, semicolonIndex).Trim() : value;
-
-                    if (pureValue == valueToReplace)
-                    {
-                        string comment = semicolonIndex >= 0 ? value.Substring(semicolonIndex) : "";
-                        lines[i] = $"{key} = {newValue}{comment}";
-                    }
-                }
-
-                File.WriteAllLines(configFilePath, lines);
-                UnityEngine.Debug.Log($"[Several Bees] Updated value '{valueToReplace}' to '{newValue}' in {configFilePath}");
-                RefreshConfigEditor();
-            } catch (Exception e)
-            {
-                UnityEngine.Debug.LogWarning($"[Several Bees] Error updating config value: {e.Message}");
-                SetToolTip($"Error updating config value: {e.Message}");
-            }
         }
 
 
@@ -765,7 +794,7 @@ namespace SeveralBees
                     {
                         buttonText = modName,
                         isTogglable = false,
-                        toolTip = $"Opens the info page for the '{modName}' mod.",
+                        toolTip = $"Opens the config info page for the '{modName}' mod.",
                         method = () => OpenCodeModPage(modName, modLink)
                     });
                 }
@@ -800,6 +829,13 @@ namespace SeveralBees
                     method = () => InstallMod(ModLink, ModName)
                 });
             }
+            Buttons.Add(new ModButtonInfo
+            {
+                buttonText = "<color=orange>Install Latest</color>",
+                isTogglable = false,
+                toolTip = $"Installs the latest version of {ModName}.",
+                method = () => InstallLatestMod(ModLink, ModName)
+            });
 
             Buttons.Add(new ModButtonInfo
             {
@@ -873,6 +909,44 @@ namespace SeveralBees
             RestartApp();
         }
 
+        internal void InstallLatestMod(string ModLink, string ModName)
+        {
+            Api.Instance.tokenListButtonInfo[ModLink] = new List<ModButtonInfo> { new ModButtonInfo { buttonText = "<color=orange>" + "Uninstalling..." + "</color>", toolTip = "Please wait.." } };
+            string dllPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "BepInEx", "plugins", ModName + ".dll");
+            if (!File.Exists(dllPath))
+            {
+                Api.Instance.tokenListButtonInfo[ModLink] = new List<ModButtonInfo> { new ModButtonInfo { buttonText = "<color=red>" + "Mod Not Found." + "</color>", toolTip = "Please wait.." } };
+                return;
+            }
+
+            string deletePath = dllPath + ".delete";
+            if (File.Exists(deletePath)) File.Delete(deletePath);
+            File.Move(dllPath, deletePath);
+
+            Api.Instance.tokenListButtonInfo[ModLink] = new List<ModButtonInfo> { new ModButtonInfo { buttonText = "<color=green>" + "Uninstall Complete" + "</color>", toolTip = "Please wait.." } };
+
+            string pluginsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "BepInEx", "plugins");
+            if (!Directory.Exists(pluginsPath)) Directory.CreateDirectory(pluginsPath);
+
+            string tempFile = Path.Combine(Path.GetTempPath(), ModName + ".dll");
+
+            using (var client = new System.Net.WebClient())
+            {
+                client.DownloadProgressChanged += (s, e) => Api.Instance.tokenListButtonInfo[ModLink] = new List<ModButtonInfo> { new ModButtonInfo { buttonText = "<color=orange>Installing... " + e.ProgressPercentage + "%</color>", toolTip = "Please wait.." } };
+                client.DownloadFileCompleted += (s, e) => Api.Instance.tokenListButtonInfo[ModLink] = new List<ModButtonInfo> { new ModButtonInfo { buttonText = "<color=green>" + "Install Complete" + "</color>", toolTip = "Please wait.." } };
+                client.DownloadFileAsync(new Uri(ModLink), tempFile);
+                while (client.IsBusy) Thread.Sleep(100);
+            }
+
+            string destFile = Path.Combine(pluginsPath, ModName + ".dll");
+            if (File.Exists(destFile)) File.Delete(destFile);
+            File.Move(tempFile, destFile);
+
+            Api.Instance.tokenListButtonInfo[ModLink] = new List<ModButtonInfo> { new ModButtonInfo { buttonText = "<color=orange>" + "Restarting game..." + "</color>", toolTip = "Please wait.." } };
+
+            RestartApp();
+        }
+
         internal void RestartApp()
         {
             string configDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "BepInEx", "config");
@@ -910,6 +984,25 @@ exit";
                 foreach (var key in Api.Instance.tokenList)
                 {
                     if (Api.Instance.tokenListVisable[key.Value] == true) things.Add(new Things { Name = key.Key, Enterable = true, Token = key.Value });
+                }
+            }
+            else if (SectionName == "NotNew")
+            {
+                foreach (ModButtonInfo mbi in Api.Instance.tokenListButtonInfo[SectionName])
+                {
+                    string ButtonName = mbi.buttonText;
+                    if (mbi.isTogglable)
+                    {
+                        if (mbi.enabled)
+                        {
+                            ButtonName = "<color=green>" + ButtonName + " [ON]</color>";
+                        }
+                        else
+                        {
+                            ButtonName = "<color=red>" + ButtonName + " [OFF]</color>";
+                        }
+                    }
+                    things.Add(new Things { Name = ButtonName, Enterable = false, Token = SectionName, mbi = mbi });
                 }
             }
             else
@@ -966,6 +1059,13 @@ exit";
 
         private void Update()
         {
+            if (ObjectColliders[0].enabled != Config.MachineHasColliders())
+            {
+                foreach(Collider col in ObjectColliders)
+                {
+                    col.enabled = Config.MachineHasColliders();
+                }
+            }
             if (UnityInput.Current.GetKey(KeyCode.T) && UnityInput.Current.GetKey(KeyCode.E) && UnityInput.Current.GetKey(KeyCode.S))
             {
                 TestMode = true;
@@ -1041,6 +1141,11 @@ exit";
                 {
                     EnterPress = false;
                 }
+            }
+
+            if (!IsLatestVersion)
+            {
+                SectionName = "NotNew";
             }
 
             if (TestMode && !TestModeDone)

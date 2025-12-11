@@ -3,6 +3,10 @@ using System;
 using System.IO;
 using System.Reflection;
 using SeveralBees;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using System.Linq;
+using HarmonyLib;
 
 namespace SeveralBees
 {
@@ -74,12 +78,88 @@ namespace SeveralBees
             SeveralBees.Instance.ReMakeModManger();
         }
 
-        public AssetBundle LoadAssetBundle(string path)
+
+        // Orignal asset loader by Skellon, slight tweaks so it works with other bundles https://github.com/skellondev
+        private Dictionary<string, List<UnityEngine.Object>> _assetDict = new Dictionary<string, List<UnityEngine.Object>>();
+        public List<string> LoadedBundles = new List<string>();
+        public bool TryGetAsset<T>(string BundleName, string name, out T obj) where T : UnityEngine.Object
         {
-            Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(path);
-            AssetBundle bundle = AssetBundle.LoadFromStream(stream);
-            stream.Close();
-            return bundle;
+            if (LoadedBundles.Contains(BundleName) && _assetDict[BundleName].FirstOrDefault(asset => asset.name == name) is T prefab)
+            {
+                obj = prefab;
+                return true;
+            }
+
+            obj = null!;
+            return false;
+        }
+        public void AssetLoad(string BundleName)
+        {
+            try
+            {
+                if (LoadedBundles.Contains(BundleName)) throw new Exception("Assets already loaded.");
+                Assembly assembly = Assembly.GetExecutingAssembly();
+                Stream? stream = assembly.GetManifestResourceStream(BundleName);
+                AssetBundle bundle = AssetBundle.LoadFromStream(stream ?? throw new Exception("[Several Bees] Failed to get stream."));
+
+                UnityEngine.Debug.Log($"[Several Bees] Retrieved bundle: {(bundle ?? throw new Exception("[Several Bees] Failed to get bundle.")).name}");
+                foreach (var asset in bundle.LoadAllAssets())
+                {
+                    _assetDict[BundleName].AddIfNew(asset);
+                    UnityEngine.Debug.Log($"[Several Bees] Loaded asset: {asset.name} ({asset.GetType().FullName})");
+                }
+
+                stream.Close();
+                LoadedBundles.AddItem(BundleName);
+                UnityEngine.Debug.Log($"[Several Bees] Loaded {_assetDict[BundleName].Count} assets");
+            }
+            catch (Exception ex)
+            {
+                UnityEngine.Debug.Log(ex.Message);
+            }
+        }
+    }
+
+    internal static class AssetLoader
+    {
+        // https://github.com/skellondev
+
+        private static readonly List<UnityEngine.Object> _assets = new List<UnityEngine.Object>();
+        public static bool BundleLoaded => _assets.Count > 0;
+        public static bool TryGetAsset<T>(string name, out T obj) where T : UnityEngine.Object
+        {
+            if (BundleLoaded && _assets.FirstOrDefault(asset => asset.name == name) is T prefab)
+            {
+                obj = prefab;
+                return true;
+            }
+
+            obj = null!;
+            return false;
+        }
+        public static void LoadAssets()
+        {
+            try
+            {
+                if (BundleLoaded) throw new Exception("Assets already loaded.");
+                Assembly assembly = Assembly.GetExecutingAssembly();
+                Stream? stream = assembly.GetManifestResourceStream($"SeveralBees.sbbundle");
+                AssetBundle bundle = AssetBundle.LoadFromStream(stream ?? throw new Exception("Failed to get stream."));
+
+                UnityEngine.Debug.Log($"Retrieved bundle: {(bundle ?? throw new Exception("Failed to get bundle.")).name}");
+                foreach (var asset in bundle.LoadAllAssets())
+                {
+                    _assets.AddIfNew(asset);
+                    UnityEngine.Debug.Log($"Loaded asset: {asset.name} ({asset.GetType().FullName})");
+                }
+
+                stream.Close();
+                UnityEngine.Debug.Log($"Loaded {_assets.Count} assets");
+            }
+            catch (Exception ex)
+            {
+                UnityEngine.Debug.Log(ex.Message);
+            }
         }
     }
 }

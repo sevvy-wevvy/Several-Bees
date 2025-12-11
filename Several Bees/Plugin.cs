@@ -1,6 +1,8 @@
 ﻿using UnityEngine;
 using BepInEx;
 using System.Reflection;
+using System;
+using System.Net.Http;
 
 namespace SeveralBees
 {
@@ -9,17 +11,19 @@ namespace SeveralBees
     {
         public static Plugin Instance { get; private set; }
 
-        private void Awake()
+        private async void Awake()
         {
             UnityEngine.Debug.Log("[Several Bees] Plugin Awake");
-            var asm = Assembly.GetExecutingAssembly();
-            var names = asm.GetManifestResourceNames();
-            foreach (var n in names)
-            {
-                Debug.Log("[Several Bees] Embedded Resource: " + n);
-            }
             Instance = this;
             UnityEngine.Debug.Log("[Several Bees] Plugin Instance Set");
+
+            var url = global::SeveralBees.Config.ModVersionLink + "?date=" + DateTime.UtcNow.ToString("yyyyMMddHHmmss");
+            using (HttpClient client = new HttpClient())
+            {
+                var content = await client.GetStringAsync(url);
+                var latestVersion = content.Trim();
+                SeveralBees.Instance.IsLatestVersion = (latestVersion == global::SeveralBees.Config.CurrentModVersion);
+            }
         }
 
         private void Start()
@@ -30,13 +34,7 @@ namespace SeveralBees
             svrlbs.AddComponent<Api>();
             svrlbs.AddComponent<ModBrowser>();
             UnityEngine.Debug.Log("[Several Bees] SeveralBees Object Created");
-            try
-            {
-                SeveralBees.Instance.Bundle = Extra.Instance.LoadAssetBundle("SeveralBees.sbbundle");
-            }
-            catch { }
-            SeveralBees.Instance.Bundle.GetAllAssetNames().ForEach(name => UnityEngine.Debug.Log("[Several Bees] Bundle Asset: " + name));
-            UnityEngine.Debug.Log("[Several Bees] Asset Bundle Loaded");
+            AssetLoader.LoadAssets();
         }
 
         GameObject svrlbs = null;

@@ -48,5 +48,21 @@ namespace SeveralBees
 
             callback?.Invoke(dict);
         }
+
+        internal string GetModName(string link)
+        {
+            var trimmed = link.Trim();
+            if (trimmed.Length == 0) return string.Empty;
+
+            var lastSlash = trimmed.LastIndexOf('/');
+            if (lastSlash < 0) return string.Empty;
+
+            var modName = trimmed.Substring(lastSlash + 1);
+            var dllIndex = modName.IndexOf(".dll", StringComparison.OrdinalIgnoreCase);
+            if (dllIndex > 0) modName = modName.Substring(0, dllIndex);
+
+            return modName;
+        }
+
     }
 }
