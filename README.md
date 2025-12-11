@@ -24,7 +24,7 @@
 </p>
 
 <details>
-<summary align="center">📄 Docs 📄</summary>
+<summary align="center"><b>📄 Docs 📄</b></summary>
 
 <p align="center">
 Want to use this lib for your own projects, or maybe fork it to a different game?  
@@ -33,7 +33,7 @@ Want to use this lib for your own projects, or maybe fork it to a different game
 </details>
 
 <details>
-<summary align="center">⚖️ License ⚖️</summary>
+<summary align="center"><b>⚖️ License ⚖️</b></summary>
 
 <p align="center">
   <small>
@@ -58,12 +58,11 @@ Want to use this lib for your own projects, or maybe fork it to a different game
 </p>
 </details>
 
-<h2 align="center">Disclaimer</h2>
-
-<h4 align="center">
-This product is not affiliated with Gorilla Tag or Another Axiom LLC and is not endorsed or otherwise sponsored by Another Axiom LLC.  
-Portions of the materials contained herein are property of Another Axiom LLC. © 2021 Another Axiom LLC.
-</h4>
+<p align="center">
+  > [!NOTE]</h2>
+  > This product is not affiliated with Gorilla Tag or Another Axiom LLC and is not endorsed or otherwise sponsored by Another Axiom LLC.  
+  > Portions of the materials contained herein are property of Another Axiom LLC. © 2021 Another Axiom LLC.
+</p>
 
 ---
 <p align="center">
