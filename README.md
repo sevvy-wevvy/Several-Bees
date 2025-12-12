@@ -20,7 +20,7 @@
     <img src="https://img.shields.io/badge/Support%20me%20on-Ko--fi-FF5E5B?style=for-the-badge&logo=kofi&logoColor=white" alt="Support me on Ko-fi" width="160", height="30">
   </a>
   <a href="https://sevvy-wevvy.com/patreon" target="_blank" style="margin-left:10px;">
-    <img src="https://img.shields.io/badge/Support%20me%20on-Patreon-FF424D?style=for-the-badge&logo=patreon&logoColor=white" alt="Support me on Patreon" width="160">
+    <img src="https://img.shields.io/badge/Support%20me%20on-Patreon-FF424D?style=for-the-badge&logo=patreon&logoColor=white" alt="Support me on Patreon" width="160", height="30">
   </a>
 </p>
 
