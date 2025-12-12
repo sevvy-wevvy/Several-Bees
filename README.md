@@ -25,7 +25,7 @@
 </p>
 
 <p align="center">
-  Several Bees is a library for easy, intuitive UIs, and much more.<br>
+  Several Bees is a library for easy, intuitive UIs, and much more.<br> <br>
   Do you like this lib? If so, please let me know!  
   <a href="https://sevvy-wevvy.com/discord">Discord</a>
 </p>
