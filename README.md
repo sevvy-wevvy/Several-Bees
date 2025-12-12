@@ -40,6 +40,16 @@ Want to use this lib for your own projects, or maybe fork it to a different game
 </details>
 
 <details>
+<summary align="center"><b>🛠 Pull Requests 🛠</b></summary>
+
+<p align="center">
+Want to help with this lib? <a href="https://github.com/sevvy-wevvy/Several-Bees/pulls">Make A pull request!</a><br>
+Pull request allow for anyone to request a change to this code. Intern meaning that <b>YOU</b> can contribute to this project.<br>
+As long as it works, and doesnt vary off to far from the main idea its very likley it get accepted!
+</p>
+</details>
+
+<details>
 <summary align="center"><b>⚖️ License ⚖️</b></summary>
 
 <p align="center">
