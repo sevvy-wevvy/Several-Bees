@@ -3,7 +3,7 @@
 If you found a Vunrabilitys and/or Exploit with this software, please handel it safly as a <b>bug bounty</b> may me provided up to <b>20$</b>. 
 Secure GitHub Forms: https://github.com/sevvy-wevvy/Several-Bees/security/advisories/new <br>
 Discord: https://sevvy-wevvy.com/discord <br>
-Email: <pre>sev@3gv.org</pre>
+Email: <code>sev@3gv.org</code>
 </p>
 
 > [!CAUTION]
