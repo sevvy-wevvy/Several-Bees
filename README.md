@@ -4,7 +4,7 @@
 <b>A library for making easy UIs, installing and browsing mods in-game, and much more.</b>
 </p>
 
-<p align="center" style="margin:4px 0;">
+<p align="center">
   <a href="https://github.com/sevvy-wevvy/Several-Bees/releases/latest">
     <img src="https://img.shields.io/github/downloads/sevvy-wevvy/Several-Bees/total?label=Downloads&style=for-the-badge" alt="Downloads">
   </a>
@@ -15,7 +15,7 @@
     <img src="https://img.shields.io/discord/1398944180079689728?label=Discord&style=for-the-badge" alt="Discord">
   </a>
 </p>
-<p align="center" style="margin:4px 0;">
+<p align="center">
   <a href="https://sevvy-wevvy.com/kofi" target="_blank">
     <img src="https://img.shields.io/badge/Support%20me%20on-Ko--fi-FF5E5B?style=for-the-badge&logo=kofi&logoColor=white" alt="Support me on Ko-fi" width="160">
   </a>
