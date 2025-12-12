@@ -93,6 +93,6 @@ I accept donations over few platforms, below are where you can help support my p
 ---
 <p align="center">
   <sub>
-    To enter test mode for the lib (such as unlocking UI access in versions without the UI enabled and enabling debugging features), press <b>T + E + S</b> together.
+    To enter test mode for the lib (such as unlocking UI access in versions without the UI enabled and enabling other debugging features), press <b>T + E + S</b> together.
   </sub>
 </p>
