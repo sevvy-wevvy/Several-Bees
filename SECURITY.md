@@ -1,8 +1,11 @@
-# 🛡️ Security Policy
-Find a vulnerable exploit with the menu? Please get in touch with me in the following ways:
-- Private GitHub security forms: https://github.com/iiDk-the-actual/iis.Stupid.Menu/security/advisories/new
-- Email: `admin@goldentrophy.software`
+<h1 align="center">🛡️ Security Policy 🛡️</h1>
+<p align="center">
+If you found a Vunrabilitys and/or Exploit with this software, please handel it safly as a <b>bug bounty</b> may me provided up to <b>20$</b>. 
+Secure GitHub Forms: https://github.com/sevvy-wevvy/Several-Bees/security/advisories/new  
+Discord: https://sevvy-wevvy.com/discord  
+Email: `sev@3gv.org`
+</p>
 
 > [!CAUTION]
-> Please do not post any found vulnerabilities publically anywhere. I wish to have all security and privacy related issues handled safely.
-> You may alert users about the vulnerabilities after they are patched.
+> Please do not post any found Vunrabilitys and/or Exploit publically anywhere. It may cause backlash such as a Blacklist from this software and more.
+> Sharing Vunrabilitys and/or Exploit after they are patched is fine, as long as there is no way to recreate the Vunrability and/or Exploit.
