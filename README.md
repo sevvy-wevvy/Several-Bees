@@ -17,14 +17,13 @@
 </p>
 
 <p align="center">
-  <a href="https://ko-fi.com/D1D21Q329F" target="_blank">
-    <img src="https://ko-fi.com/img/githubbutton_sm.svg" alt="ko-fi" width="120">
+  <a href="https://sevvy-wevvy.com/kofi" target="_blank">
+    <img src="https://img.shields.io/badge/Support%20me%20on-Ko--fi-FF5E5B?style=for-the-badge&logo=kofi&logoColor=white" alt="Support me on Ko-fi" width="160">
   </a>
-  <a href="https://patreon.com/yourpatreonusername" target="_blank" style="margin-left:10px;">
-    <img src="https://img.shields.io/badge/Support%20me%20on-Patreon-orange?style=for-the-badge&logo=patreon" alt="Patreon" width="120">
+  <a href="https://sevvy-wevvy.com/patreon" target="_blank" style="margin-left:10px;">
+    <img src="https://img.shields.io/badge/Support%20me%20on-Patreon-FF424D?style=for-the-badge&logo=patreon&logoColor=white" alt="Support me on Patreon" width="160">
   </a>
 </p>
-
 <p align="center">
   Several Bees is a library for easy, intuitive UIs, and much more.<br>
   Do you like this lib? If so, please let me know!  
