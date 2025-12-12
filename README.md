@@ -77,7 +77,7 @@ I accept donations over few platforms, below are where you can help support my p
 
 > [!NOTE]</h2>
 > This product is not affiliated with Gorilla Tag or Another Axiom LLC and is not endorsed or otherwise sponsored by Another Axiom LLC.  
-> Portions of the materials contained herein are property of Another Axiom LLC. © 2021 Another Axiom LLC.
+> Portions of the materials contained herein are property of Another Axiom LLC. © 2021 Another Axiom LLC.  
 > This project may make calls to <b>sevvy-wevvy.com/mods/gorilla-tag/sb/</b> to log the amount of uses, general area data, games the mod has been used in.
 
 ---
