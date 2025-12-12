@@ -14,8 +14,15 @@
   <a href="https://sevvy-wevvy.com/discord">
     <img src="https://img.shields.io/discord/1398944180079689728?label=Discord&style=for-the-badge" alt="Discord">
   </a>
+</p>
 
-  [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/D1D21Q329F)
+<p align="center">
+  <a href="https://ko-fi.com/D1D21Q329F" target="_blank">
+    <img src="https://ko-fi.com/img/githubbutton_sm.svg" alt="ko-fi" width="120">
+  </a>
+  <a href="https://patreon.com/yourpatreonusername" target="_blank" style="margin-left:10px;">
+    <img src="https://img.shields.io/badge/Support%20me%20on-Patreon-orange?style=for-the-badge&logo=patreon" alt="Patreon" width="120">
+  </a>
 </p>
 
 <p align="center">
