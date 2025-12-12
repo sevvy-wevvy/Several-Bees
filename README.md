@@ -70,7 +70,7 @@ Want to use this lib for your own projects, or maybe fork it to a different game
 
 <p align="center">
 I accept donations over few platforms, below are where you can help support my projects and more.<br>
-<b>Patreon</b> - https://sevvy-wevvy.com/patreon
+<b>Patreon</b> - https://sevvy-wevvy.com/patreon<br>
 <b>Ko-fi</b> - https://sevvy-wevvy.com/kofi
 </p>
 </details>
