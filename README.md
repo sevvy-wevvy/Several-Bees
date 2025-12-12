@@ -15,7 +15,6 @@
     <img src="https://img.shields.io/discord/1398944180079689728?label=Discord&style=for-the-badge" alt="Discord">
   </a>
 </p>
-
 <p align="center">
   <a href="https://sevvy-wevvy.com/kofi" target="_blank">
     <img src="https://img.shields.io/badge/Support%20me%20on-Ko--fi-FF5E5B?style=for-the-badge&logo=kofi&logoColor=white" alt="Support me on Ko-fi" width="160">
