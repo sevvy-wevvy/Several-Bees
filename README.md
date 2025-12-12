@@ -14,6 +14,8 @@
   <a href="https://sevvy-wevvy.com/discord">
     <img src="https://img.shields.io/discord/1398944180079689728?label=Discord&style=for-the-badge" alt="Discord">
   </a>
+
+  [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/D1D21Q329F)
 </p>
 
 <p align="center">
