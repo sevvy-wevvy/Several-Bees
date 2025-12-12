@@ -26,7 +26,6 @@ using Utilla.Attributes; // Remove this line for non gorilla tag games
 namespace SeveralBees
 {
     [BepInPlugin("com.Sev.gorillatag.SeveralBees", "Several Bees", SeveralBees.Config.CurrentModVersion)]
-    [BepInDependency("org.legoandmars.gorillatag.utilla", "1.5.0")] // Remove this line for non gorilla tag games
     [ModdedGamemode] // Remove this line for non gorilla tag games
     public class Plugin : BaseUnityPlugin
     {
@@ -74,3 +73,4 @@ namespace SeveralBees
         GameObject svrlbs = null;
     }
 }
+
