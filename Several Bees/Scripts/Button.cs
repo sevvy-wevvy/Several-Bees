@@ -1,3 +1,19 @@
+using System.Reflection;
+/*
+Copyright (C) 2025 GGGravity
+https://github.com/sevvy-wevvy/Several-Bees/
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+*/
+
 using UnityEngine;
 using System;
 
@@ -14,10 +30,10 @@ namespace SeveralBees.Scripts
 
         private void OnCollisionEnter(Collision collision)
         {
-            if(collision.collider == SeveralBees.Instance.LeftPointerCollider || collision.collider == SeveralBees.Instance.RightPointerCollider)
+            if(collision.collider == SeveralBeesCore.Instance.LeftPointerCollider || collision.collider == SeveralBeesCore.Instance.RightPointerCollider)
             {
                 UnityEngine.Debug.Log($"[Several Bees] Button '{Name}' Clicked");
-                Click?.Invoke(collision.collider == SeveralBees.Instance.LeftPointerCollider);
+                Click?.Invoke(collision.collider == SeveralBeesCore.Instance.LeftPointerCollider);
             }
         }
     }

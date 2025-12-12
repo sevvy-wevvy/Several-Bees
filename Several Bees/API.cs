@@ -1,3 +1,19 @@
+using System.Reflection;
+/*
+Copyright (C) 2025 GGGravity
+https://github.com/sevvy-wevvy/Several-Bees/
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+*/
+
 using System.Collections.Generic;
 using UnityEngine;
 using System;
@@ -36,7 +52,7 @@ namespace SeveralBees
         {
             if (!HasMadeSettings)
             {
-                SeveralBees.Instance.MakeSettings();
+                SeveralBeesCore.Instance.MakeSettings();
                 HasMadeSettings = true;
             }
             string token;
@@ -81,8 +97,8 @@ namespace SeveralBees
 
         public void OpenMenu(string token)
         {
-            SeveralBees.Instance.SectionName = token;
-            SeveralBees.Instance.PointerPositionIndex = 0;
+            SeveralBeesCore.Instance.SectionName = token;
+            SeveralBeesCore.Instance.PointerPositionIndex = 0;
         }
 
         public ModButtonInfo GrabButton(string token, string name)
@@ -120,8 +136,6 @@ namespace SeveralBees
         public Action method;
         public Action enableMethod;
         public Action disableMethod;
-        public Action enableUpdate;
-        public Action disableUpdate;
         public string toolTip = null;
     }
 }

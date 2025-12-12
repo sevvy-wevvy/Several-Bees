@@ -1,4 +1,19 @@
-﻿using System.Collections.Generic;
+﻿/*
+Copyright (C) 2025 GGGravity
+https://github.com/sevvy-wevvy/Several-Bees/
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+*/
+
+using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
 using System;
@@ -13,14 +28,16 @@ using System.Reflection;
 using UnityEngine.InputSystem.Controls;
 using BepInEx.Configuration;
 using System.Threading.Tasks;
+using UnityEngine.UI;
+using Scripts = SeveralBees.Scripts;
 
 namespace SeveralBees
 {
-    public class SeveralBees : MonoBehaviour
+    public class SeveralBeesCore : MonoBehaviour
     {
         internal bool IsLatestVersion = true;
         public bool TestMode = false;
-        public static SeveralBees Instance { get; private set; }
+        public static SeveralBeesCore Instance { get; private set; }
 
         public List<DetailedColor> CycleColors = new List<DetailedColor>
         {
@@ -149,7 +166,7 @@ namespace SeveralBees
             {
                 if (!Api.Instance.HasMadeSettings)
                 {
-                    SeveralBees.Instance.MakeSettings();
+                    SeveralBeesCore.Instance.MakeSettings();
                     Api.Instance.HasMadeSettings = true;
                 }
 
@@ -229,7 +246,7 @@ namespace SeveralBees
                     }
                 }
 
-                if (Config.CompType == ComputerType.Full)
+                if (Config.CompType == ComputerType.FullComputer)
                 {
                     var textObj = new GameObject("SB_Text");
                     ModMangerText = textObj.AddComponent<TextMeshPro>();
@@ -284,13 +301,72 @@ namespace SeveralBees
                             else
                             {
                                 MeshCollider ocl67 = Child.AddComponent<MeshCollider>();
-                                ocl67.convex = true;
                                 ObjectColliders.Add(ocl67);
                             }
                         }
                         Computer.transform.position = new Vector3(0.07f, 0.09f, -0.1563f);
                         Computer.transform.rotation = Quaternion.Euler(0f, 180f, 0f);
                         Computer.transform.localScale = new Vector3(0.15f, 0.15f, 0.15f);
+                    }
+                }
+
+                if (Config.CompType == ComputerType.FullMachine)
+                {
+                    var textObj = new GameObject("SB_Text");
+                    ModMangerText = textObj.AddComponent<TextMeshPro>();
+                    ModMangerText.text = "Several Bees";
+                    textObj.transform.position = Vector3.zero;
+                    textObj.transform.SetParent(ModManegerParent.transform);
+                    ModMangerText.fontSize = 0.5f;
+                    ModMangerText.alignment = TextAlignmentOptions.Center;
+                    ModMangerText.gameObject.transform.position = new Vector3(0f, 0.38f, -0.01f);
+                    ModMangerText.color = Color.white;
+
+                    GameObject Machine = null;
+                    GameObject machinePrefab = null;
+                    if (AssetLoader.TryGetAsset<GameObject>("SbMachine", out machinePrefab))
+                    {
+                        Machine = Instantiate(machinePrefab);
+                        Machine.transform.SetParent(ModManegerParent.transform);
+                        foreach (Transform Child in Machine.transform)
+                        {
+                            Extra.Instance.MakeObjectVisible(Child.gameObject, false);
+                            if (Child.name == "Up")
+                            {
+                                Child.AddComponent<Scripts.Button>().Name = "SB_Down_Button";
+                                Child.GetComponent<Scripts.Button>().Click += (bool Left) =>
+                                {
+                                    MmUp(Left);
+                                };
+                                Child.AddComponent<BoxCollider>();
+                            }
+                            else if (Child.name == "Down")
+                            {
+                                Child.AddComponent<Scripts.Button>().Name = "SB_Down_Button";
+                                Child.GetComponent<Scripts.Button>().Click += (bool Left) =>
+                                {
+                                    MmDown(Left);
+                                };
+                                Child.AddComponent<BoxCollider>();
+                            }
+                            else if (Child.name == "Select")
+                            {
+                                Child.AddComponent<Scripts.Button>().Name = "SB_Down_Button";
+                                Child.GetComponent<Scripts.Button>().Click += (bool Left) =>
+                                {
+                                    MmSelect(Left);
+                                };
+                                Child.AddComponent<BoxCollider>();
+                            }
+                            else if (Child.name == "Machine")
+                            {
+                                MeshCollider ocl67 = Child.AddComponent<MeshCollider>();
+                                ObjectColliders.Add(ocl67);
+                            }
+                        }
+                        Machine.transform.position = new Vector3(0f, 0.04f, 0.02f);
+                        Machine.transform.rotation = Quaternion.Euler(0f, 270f, 0f);
+                        Machine.transform.localScale = new Vector3(0.025f, 0.025f, 0.025f);
                     }
                 }
 

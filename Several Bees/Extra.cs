@@ -1,3 +1,19 @@
+using System.Reflection;
+/*
+Copyright (C) 2025 GGGravity
+https://github.com/sevvy-wevvy/Several-Bees/
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+*/
+
 using UnityEngine;
 using System;
 using System.IO;
@@ -67,15 +83,15 @@ namespace SeveralBees
 
         public void SetTheme(Color nm1, Color nm2, float fadeSpeed = -8275892375)
         {
-            SeveralBees.Instance.Theme1 = nm1;
-            SeveralBees.Instance.Theme2 = nm2;
+            SeveralBeesCore.Instance.Theme1 = nm1;
+            SeveralBeesCore.Instance.Theme2 = nm2;
             if(fadeSpeed != -8275892375)
             {
-                SeveralBees.Instance.ThemeFadeSpeed = fadeSpeed;
+                SeveralBeesCore.Instance.ThemeFadeSpeed = fadeSpeed;
             }
             Settings.SetButtonNames();
             Settings.Save();
-            SeveralBees.Instance.ReMakeModManger();
+            SeveralBeesCore.Instance.ReMakeModManger();
         }
 
 

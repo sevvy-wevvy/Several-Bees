@@ -1,3 +1,19 @@
+using System.Reflection;
+/*
+Copyright (C) 2025 GGGravity
+https://github.com/sevvy-wevvy/Several-Bees/
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+*/
+
 using SeveralBees;
 using System.Collections.Generic;
 using UnityEngine;
@@ -8,7 +24,7 @@ namespace SeveralBees
     {
         public static string GetColorName(Color color, bool ColorText = true)
         {
-            foreach (var detailed in SeveralBees.Instance.CycleColors)
+            foreach (var detailed in SeveralBeesCore.Instance.CycleColors)
             {
                 if (detailed.color == color)
                     return ColorText ? $"<color=#{ColorUtility.ToHtmlStringRGB(detailed.color)}>" + detailed.name + "</color>" : detailed.name;
@@ -27,57 +43,57 @@ namespace SeveralBees
         }
         public static void SetButtonNames()
         {
-            Api.Instance.SetButtonNickname("2", "cfs", $"Change Fade Speed (Current: {SeveralBees.Instance.ThemeFadeSpeed:F2})");
-            Api.Instance.SetButtonNickname("2", "nfc", $"Theme First Color (Current: {GetColorName(SeveralBees.Instance.Theme1)})");
-            Api.Instance.SetButtonNickname("2", "nsc", $"Theme Second Color (Current: {GetColorName(SeveralBees.Instance.Theme2)})");
+            Api.Instance.SetButtonNickname("2", "cfs", $"Change Fade Speed (Current: {SeveralBeesCore.Instance.ThemeFadeSpeed:F2})");
+            Api.Instance.SetButtonNickname("2", "nfc", $"Theme First Color (Current: {GetColorName(SeveralBeesCore.Instance.Theme1)})");
+            Api.Instance.SetButtonNickname("2", "nsc", $"Theme Second Color (Current: {GetColorName(SeveralBeesCore.Instance.Theme2)})");
         }
 
         public static void Save()
         {
-            PlayerPrefs.SetFloat("SeveralBees_ColorFadeSpeed", SeveralBees.Instance.ThemeFadeSpeed);
-            PlayerPrefs.SetString("SeveralBees_TitleColorStart", ColorUtility.ToHtmlStringRGB(SeveralBees.Instance.Theme1));
-            PlayerPrefs.SetString("SeveralBees_TitleColorEnd", ColorUtility.ToHtmlStringRGB(SeveralBees.Instance.Theme2));
+            PlayerPrefs.SetFloat("SeveralBees_ColorFadeSpeed", SeveralBeesCore.Instance.ThemeFadeSpeed);
+            PlayerPrefs.SetString("SeveralBees_TitleColorStart", ColorUtility.ToHtmlStringRGB(SeveralBeesCore.Instance.Theme1));
+            PlayerPrefs.SetString("SeveralBees_TitleColorEnd", ColorUtility.ToHtmlStringRGB(SeveralBeesCore.Instance.Theme2));
             PlayerPrefs.Save();
         }
 
         public static void Load()
         {
-            SeveralBees.Instance.ThemeFadeSpeed = PlayerPrefs.GetFloat("SeveralBees_ColorFadeSpeed", SeveralBees.Instance.ThemeFadeSpeed);
-            SeveralBees.Instance.Theme1 = StringToColor(PlayerPrefs.GetString("SeveralBees_TitleColorStart", ColorUtility.ToHtmlStringRGB(SeveralBees.Instance.Theme1)));
-            SeveralBees.Instance.Theme2 = StringToColor(PlayerPrefs.GetString("SeveralBees_TitleColorEnd", ColorUtility.ToHtmlStringRGB(SeveralBees.Instance.Theme2)));
+            SeveralBeesCore.Instance.ThemeFadeSpeed = PlayerPrefs.GetFloat("SeveralBees_ColorFadeSpeed", SeveralBeesCore.Instance.ThemeFadeSpeed);
+            SeveralBeesCore.Instance.Theme1 = StringToColor(PlayerPrefs.GetString("SeveralBees_TitleColorStart", ColorUtility.ToHtmlStringRGB(SeveralBeesCore.Instance.Theme1)));
+            SeveralBeesCore.Instance.Theme2 = StringToColor(PlayerPrefs.GetString("SeveralBees_TitleColorEnd", ColorUtility.ToHtmlStringRGB(SeveralBeesCore.Instance.Theme2)));
         }
 
         public static void cfs()
         {
-            List<float> Floats = SeveralBees.Instance.CycleFloats;
-            int currentIndex = Floats.IndexOf(SeveralBees.Instance.ThemeFadeSpeed);
+            List<float> Floats = SeveralBeesCore.Instance.CycleFloats;
+            int currentIndex = Floats.IndexOf(SeveralBeesCore.Instance.ThemeFadeSpeed);
             int nextIndex = (currentIndex + 1) % Floats.Count;
-            SeveralBees.Instance.ThemeFadeSpeed = Floats[nextIndex];
+            SeveralBeesCore.Instance.ThemeFadeSpeed = Floats[nextIndex];
             Save();
             SetButtonNames();
-            SeveralBees.Instance.ReMakeModManger();
+            SeveralBeesCore.Instance.ReMakeModManger();
         }
 
         public static void nfc()
         {
-            List<DetailedColor> Colors = SeveralBees.Instance.CycleColors;
-            int currentIndex = Colors.FindIndex(c => c.color == SeveralBees.Instance.Theme1);
+            List<DetailedColor> Colors = SeveralBeesCore.Instance.CycleColors;
+            int currentIndex = Colors.FindIndex(c => c.color == SeveralBeesCore.Instance.Theme1);
             int nextIndex = (currentIndex + 1) % Colors.Count;
-            SeveralBees.Instance.Theme1 = Colors[nextIndex].color;
+            SeveralBeesCore.Instance.Theme1 = Colors[nextIndex].color;
             Save();
             SetButtonNames();
-            SeveralBees.Instance.ReMakeModManger();
+            SeveralBeesCore.Instance.ReMakeModManger();
         }
 
         public static void nsc()
         {
-            List<DetailedColor> Colors = SeveralBees.Instance.CycleColors;
-            int currentIndex = Colors.FindIndex(c => c.color == SeveralBees.Instance.Theme2);
+            List<DetailedColor> Colors = SeveralBeesCore.Instance.CycleColors;
+            int currentIndex = Colors.FindIndex(c => c.color == SeveralBeesCore.Instance.Theme2);
             int nextIndex = (currentIndex + 1) % Colors.Count;
-            SeveralBees.Instance.Theme2 = Colors[nextIndex].color;
+            SeveralBeesCore.Instance.Theme2 = Colors[nextIndex].color;
             Save();
             SetButtonNames();
-            SeveralBees.Instance.ReMakeModManger();
+            SeveralBeesCore.Instance.ReMakeModManger();
         }
     }
 }
