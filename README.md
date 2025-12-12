@@ -4,6 +4,10 @@
 <b>A library for making easy UIs, installing and browsing mods in-game, and much more.</b>
 </p>
 
+<div align="center">
+ <img src="https://github.com/sevvy-wevvy/Several-Bees/blob/main/Resources/GitHub/Prev.png?raw=true" width=70% height=auto</img><br>
+</div><br>
+
 <p align="center">
   <a href="https://github.com/sevvy-wevvy/Several-Bees/releases/latest">
     <img src="https://img.shields.io/github/downloads/sevvy-wevvy/Several-Bees/total?label=Downloads&style=for-the-badge" alt="Downloads">
