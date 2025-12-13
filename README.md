@@ -35,6 +35,15 @@
 </p>
 
 <details>
+<summary align="center"><b>⌨ Keybind ⌨</b></summary>
+
+<p align="center">
+<b>`/Backtick</b> - Toggles the gui if enabled</p><br>
+<b>M</b> - Spawns a new instance of the ModManger maching infront of you if enabled</p>
+</p>
+</details>
+
+<details>
 <summary align="center"><b>📄 Docs 📄</b></summary>
 
 <p align="center">
