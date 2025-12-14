@@ -44,7 +44,7 @@
 </details>
 
 <details>
-<summary align="center"><b>🖖 Gstures 🤙</b></summary>
+<summary align="center"><b>🖖 Gestures 🤙</b></summary>
 
 <p align="center">
 <b>Spawn New Machine</b> - Put your hands together, hold grips, and pull them apart really fast.
