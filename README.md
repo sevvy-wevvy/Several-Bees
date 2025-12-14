@@ -38,8 +38,16 @@
 <summary align="center"><b>⌨ Keybind ⌨</b></summary>
 
 <p align="center">
-<b>`/Backtick</b> - Toggles the gui if enabled</p><br>
-<b>M</b> - Spawns a new instance of the ModManger maching infront of you if enabled</p>
+<b>`/Backtick</b> - Toggles the gui if enabled<br>
+<b>M</b> - Spawns a new instance of the ModManger maching infront of you if enabled
+</p>
+</details>
+
+<details>
+<summary align="center"><b>🖖 Gstures 🤙</b></summary>
+
+<p align="center">
+<b>Spawn New Machine</b> - Put your hands together, hold grips, and pull them apart really fast.
 </p>
 </details>
 
