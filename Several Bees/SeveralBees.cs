@@ -309,7 +309,7 @@ namespace SeveralBees
                 textObj.transform.SetParent(Parent.transform);
                 ModMangerText.fontSize = 0.5f;
                 ModMangerText.alignment = TextAlignmentOptions.Center;
-                ModMangerText.gameObject.transform.position = new Vector3(0f, 0.38f, -0.01f);
+                ModMangerText.gameObject.transform.position = new Vector3(-0.005f, 0.38f, -0.01f);
                 ModMangerText.color = Color.white;
                 ModMangerTextList.Add(ModMangerText);
 
