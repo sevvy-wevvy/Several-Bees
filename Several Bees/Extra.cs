@@ -1,4 +1,3 @@
-using System.Reflection;
 /*
 Copyright (C) 2025 GGGravity
 https://github.com/sevvy-wevvy/Several-Bees/
@@ -22,7 +21,6 @@ using SeveralBees;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Linq;
-using HarmonyLib;
 
 namespace SeveralBees
 {
@@ -126,7 +124,7 @@ namespace SeveralBees
                 }
 
                 stream.Close();
-                LoadedBundles.AddItem(BundleName);
+                LoadedBundles.Add(BundleName);
                 UnityEngine.Debug.Log($"[Several Bees] Loaded {_assetDict[BundleName].Count} assets");
             }
             catch (Exception ex)

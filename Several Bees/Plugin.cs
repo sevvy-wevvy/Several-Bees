@@ -18,29 +18,16 @@ using BepInEx;
 using System.Reflection;
 using System;
 using System.Net.Http;
-using Utilla;
-using Utilla.Attributes; // Remove this line for non gorilla tag games
-
-// You will have to remove the utilla dependance from this project aswell for non gorilla tag games
+using System.Collections.Generic;
+using System.IO;
+using UnityEngine.Networking;
+using System.Collections;
 
 namespace SeveralBees
 {
     [BepInPlugin("com.Sev.gorillatag.SeveralBees", "Several Bees", SeveralBees.Config.CurrentModVersion)]
-    [ModdedGamemode] // Remove this line for non gorilla tag games
     public class Plugin : BaseUnityPlugin
     {
-        internal bool ModdedRoom = false; // Remove this line for non gorilla tag games
-        [ModdedGamemodeJoin] // Remove this line for non gorilla tag games
-        private void RoomJoined(string gamemode) // Remove this function for non gorilla tag games
-        {
-            ModdedRoom = true;
-        }
-
-        [ModdedGamemodeLeave] // Remove this line for non gorilla tag games
-        private void RoomLeft(string gamemode) // Remove function line for non gorilla tag games
-        {
-            ModdedRoom = false;
-        }
 
         public static Plugin Instance { get; private set; }
 
@@ -49,6 +36,10 @@ namespace SeveralBees
             UnityEngine.Debug.Log("[Several Bees] Plugin Awake");
             Instance = this;
             UnityEngine.Debug.Log("[Several Bees] Plugin Instance Set");
+
+            try { StartCoroutine(LoadWav("https://github.com/sevvy-wevvy/Several-Bees/raw/refs/heads/main/Resources/Mod/click1.wav")); } catch (Exception e) { UnityEngine.Debug.LogError("[Several Bees] Error loading sound: " + e.Message); }
+            try { StartCoroutine(LoadWav("https://github.com/sevvy-wevvy/Several-Bees/raw/refs/heads/main/Resources/Mod/close.wav")); } catch (Exception e) { UnityEngine.Debug.LogError("[Several Bees] Error loading sound: " + e.Message); }
+            try { StartCoroutine(LoadWav("https://github.com/sevvy-wevvy/Several-Bees/raw/refs/heads/main/Resources/Mod/open.wav")); } catch (Exception e) { UnityEngine.Debug.LogError("[Several Bees] Error loading sound: " + e.Message); }
 
             var url = global::SeveralBees.Config.ModVersionLink + "?date=" + DateTime.UtcNow.ToString("yyyyMMddHHmmss");
             using (HttpClient client = new HttpClient())
@@ -71,6 +62,44 @@ namespace SeveralBees
         }
 
         GameObject svrlbs = null;
+
+        internal Dictionary<string, AudioClip> LoadedSounds = new Dictionary<string, AudioClip>();
+
+        internal IEnumerator LoadWav(string fileLink)
+        {
+            if (string.IsNullOrEmpty(fileLink) || !fileLink.EndsWith(".wav", StringComparison.OrdinalIgnoreCase)) yield break;
+
+            if (LoadedSounds.ContainsKey(fileLink)) yield break;
+
+            string basePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Several Bees", "Resources", "Sounds");
+
+            if (!Directory.Exists(basePath))
+                Directory.CreateDirectory(basePath);
+
+            string fileName = Path.GetFileName(fileLink);
+            string fullPath = Path.Combine(basePath, fileName);
+
+            using (UnityWebRequest www = UnityWebRequest.Get(fileLink))
+            {
+                yield return www.SendWebRequest();
+
+                if (www.result != UnityWebRequest.Result.Success)
+                    yield break;
+
+                File.WriteAllBytes(fullPath, www.downloadHandler.data);
+            }
+
+            using (UnityWebRequest www = UnityWebRequestMultimedia.GetAudioClip("file://" + fullPath, AudioType.WAV))
+            {
+                yield return www.SendWebRequest();
+
+                if (www.result != UnityWebRequest.Result.Success)
+                    yield break;
+
+                AudioClip clip = DownloadHandlerAudioClip.GetContent(www);
+                LoadedSounds[fileLink] = clip;
+            }
+        }
+
     }
 }
-

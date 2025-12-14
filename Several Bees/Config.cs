@@ -1,5 +1,4 @@
-﻿using System.Reflection;
-/*
+﻿/*
 Copyright (C) 2025 GGGravity
 https://github.com/sevvy-wevvy/Several-Bees/
 
@@ -15,6 +14,7 @@ GNU General Public License for more details.
 */
 
 using UnityEngine;
+using System.Reflection;
 
 namespace SeveralBees
 {
@@ -32,11 +32,23 @@ namespace SeveralBees
         // Used when restarting the game to esure BEPINEX boots properly. Go to the steam game, settings icon, properties, updates, and there you can find the app id.
         internal static string SteamAppId = "1533390";
         // Update this number along with the number in your version.txt
-        internal const string CurrentModVersion = "1.0.1";
+        internal const string CurrentModVersion = "1.1.0";
         // The txt that holds the latest version number of the mod.
         internal static string ModVersionLink = "https://raw.githubusercontent.com/sevvy-wevvy/Several-Bees/main/ver.txt";
         // Latest mod download link
         internal static string ModDownload = "https://github.com/sevvy-wevvy/Several-Bees/releases/latest/download/SeveralBees-Gtag.dll";
+
+
+        // How close the hands have to be to start checking to spawn the mod machine
+        internal static float gripThreshold = 0.2f;
+        // How fast the hands need to move apart to spawn the mod machine
+        internal static float pullSpeedThreshold = 0.1f;
+        // The minimum distance the hands need to be apart to spawn the mod machine
+        internal static float minPullDistance = 0.04f;
+        // The position relitive to the player the machine spawns at when the jester is detected
+        internal static Vector3 machineRelSpawn() { return BodyReference().position + BodyReference().forward * 0.75f; }
+        // The distance away a machine has to be from another to spawn
+        internal static float machineSpawnClearance = 1f;
 
 
         // Whats used when making an object visable (Use "Def" to use the defualt shader)
@@ -49,18 +61,24 @@ namespace SeveralBees
         internal static Transform RightHandReference() { return GorillaTagger.Instance.rightHandTransform; }
         // The offset of the real collider/pointer for interactions
         internal static Vector3 RightHandPointerOffset = new Vector3(0f, -0.1f, 0f);
+        // The input for the right grip button
+        internal static bool RightGripDown() { return ControllerInputPoller.instance.rightControllerGripFloat > 0.75f; }
 
 
         // The left hand transform (Set to "new Vector3(0, -integer.MaxValue, 0)" if its not a vr game/doesnt use hands)
         internal static Transform LeftHandReference() { return GorillaTagger.Instance.leftHandTransform; }
         // The offset of the real collider/pointer for interactions
         internal static Vector3 LeftHandPointerOffset = new Vector3(0f, -0.1f, 0f);
+        // The input for the left grip button
+        internal static bool LeftGripDown() { return ControllerInputPoller.instance.leftControllerGripFloat > 0.75f; }
 
 
         // The transform used to determen if the player is alllowed to use keyboard controlls
-        internal static Vector3 BodyReference() { return GorillaTagger.Instance.bodyCollider.transform.position; }
+        internal static Transform BodyReference() { return GorillaTagger.Instance.bodyCollider.transform; }
         // The max distance away from the body the player can be to use keyboard controlls
         internal static float MaxKeyboardControllsDisctance = 1.5f;
+        // The distance away from the machine (a spawned one) the player has to be to despawn it
+        internal static float MachineDespawnDistance = 3f;
         // The position for the maching to "spawn"
         internal static Vector3 MachineSpawnPoint = new Vector3(-63.2366f, 12.0326f, -81.5984f);
         // The rotation the machine "spawns" with (yes this is made into a qauturnion later)
@@ -68,7 +86,7 @@ namespace SeveralBees
         // The scale the machine "spawns" with
         internal static Vector3 MachineSpawnScale = new Vector3(1f, 1f, 1f);
         // When the machine should have colliders, say only in modded gamemodes.
-        internal static bool MachineHasColliders() { return Plugin.Instance.ModdedRoom; } // Please view the plugin script for forking to a diffrent game.
+        internal static bool MachineHasColliders() { return true; }
 
         // The type of computer/Ui that shows in game [FullMachine = Normal Machine/Wallmount, FullComputer = Normal Computer, SimpleButtons = Simple Cubes For Buttons, Text = Only Text, None = Nothing, recommended for using the gui.]
         internal static ComputerType CompType = ComputerType.FullMachine;

@@ -318,9 +318,6 @@
     <Reference Include="UnityEngine.XRModule">
       <HintPath>$(GameAssemblyPath)\UnityEngine.XRModule.dll</HintPath>
     </Reference>
-    <Reference Include="Utilla">
-      <HintPath>S:\steam shit\steamapps\common\Gorilla Tag\BepInEx\plugins\Utilla.dll</HintPath>
-    </Reference>
     <Reference Include="websocket-sharp">
       <HintPath>$(GameAssemblyPath)\websocket-sharp.dll</HintPath>
     </Reference>
