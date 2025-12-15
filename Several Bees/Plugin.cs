@@ -57,6 +57,7 @@ namespace SeveralBees
             svrlbs.AddComponent<Extra>();
             svrlbs.AddComponent<Api>();
             svrlbs.AddComponent<ModBrowser>();
+            svrlbs.AddComponent<CustonMenuAPI>();
             UnityEngine.Debug.Log("[Several Bees] SeveralBees Object Created");
             AssetLoader.LoadAssets();
         }

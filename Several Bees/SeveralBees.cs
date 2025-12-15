@@ -42,7 +42,7 @@ namespace SeveralBees
         public bool TestMode = false;
         public static SeveralBeesCore Instance { get; private set; }
 
-        public List<DetailedColor> CycleColors = new List<DetailedColor>
+        internal List<DetailedColor> CycleColors = new List<DetailedColor>
         {
             new DetailedColor { color = Color.red, name = "Red" }, // 0
             new DetailedColor { color = new Color(1f, 0.5f, 0f), name = "Orange" }, // 1
@@ -63,7 +63,7 @@ namespace SeveralBees
         };
 
 
-        public List<float> CycleFloats = new List<float>
+        internal List<float> CycleFloats = new List<float>
         {
             0.1f,
             0.2f,
@@ -134,9 +134,7 @@ namespace SeveralBees
         private List<GameObject> ModMangerDistanceIndicators = new List<GameObject>();
         private int ErrorInt = 1;
 
-        public int ClickButtonSound = 66;
-
-        public GameObject ErrorParent = null;
+        internal GameObject ErrorParent = null;
 
         internal AssetBundle Bundle;
 
@@ -151,7 +149,7 @@ namespace SeveralBees
             Create();
         }
 
-        public GameObject InstanceModManger()
+        internal GameObject InstanceModManger()
         {
             GameObject Parent = new GameObject("Several Bees || Mod Manger (Instance)");
 
@@ -373,7 +371,7 @@ namespace SeveralBees
 
             return Parent;
         }
-        public void ListError(string Error)
+        internal void ListError(string Error)
         {
             if(ErrorParent == null)
             {
@@ -383,7 +381,7 @@ namespace SeveralBees
             GameObject gameObject = new GameObject("Several Bees |" + ErrorInt + "| " + Error);
             gameObject.GetComponentInParent<Transform>().SetParent(ErrorParent.transform);
         }
-        public async Task Create()
+        internal async Task Create()
         {
             try
             {
@@ -417,7 +415,7 @@ namespace SeveralBees
             }
         }
 
-        public void MmDown(bool Left)
+        internal void MmDown(bool Left)
         {
             PlaySound("https://github.com/sevvy-wevvy/Several-Bees/raw/refs/heads/main/Resources/Mod/click1.wav");
             PointerPositionIndex++;
@@ -426,7 +424,7 @@ namespace SeveralBees
                 PointerPositionIndex = 0;
             }
         }
-        public void MmUp(bool Left)
+        internal void MmUp(bool Left)
         {
             PlaySound("https://github.com/sevvy-wevvy/Several-Bees/raw/refs/heads/main/Resources/Mod/click1.wav");
             PointerPositionIndex--;
@@ -435,7 +433,7 @@ namespace SeveralBees
                 PointerPositionIndex = MaxPointerPosition - 1;
             }
         }
-        public void MmSelect(bool Left)
+        internal void MmSelect(bool Left)
         {
             PlaySound("https://github.com/sevvy-wevvy/Several-Bees/raw/refs/heads/main/Resources/Mod/click1.wav");
             List<Things> things = GetThings();
@@ -496,7 +494,7 @@ namespace SeveralBees
             }
         }
 
-        public string ToolTipText = "";
+        internal string ToolTipText = "";
 
         internal void SetToolTip(string Text)
         {
@@ -518,12 +516,12 @@ namespace SeveralBees
         }
 
         private GameObject LeftPointer = null;
-        public SphereCollider LeftPointerCollider = null;
+        internal SphereCollider LeftPointerCollider = null;
 
         internal float ToolTipKillTime = 8f;
 
         private GameObject RightPointer = null;
-        public SphereCollider RightPointerCollider = null;
+        internal SphereCollider RightPointerCollider = null;
         private void CreatePointers()
         {
             // Code Inspired By IIDK's menu temp
@@ -694,7 +692,7 @@ namespace SeveralBees
             }
         }
 
-        public void RefreshConfigEditor()
+        internal void RefreshConfigEditor()
         {
             Api.Instance.tokenListButtonInfo["6"] = new List<ModButtonInfo>
             {
@@ -875,7 +873,7 @@ namespace SeveralBees
             GameObject.Destroy(soundObject, Player.clip.length);
         }
 
-        public void RefreshModsList()
+        internal void RefreshModsList()
         {
             Api.Instance.tokenListButtonInfo["5"] = new List<ModButtonInfo>
             {
@@ -1213,7 +1211,7 @@ exit";
             machine.transform.localScale = OgScale;
         }
 
-        public List<Things> GetThings()
+        internal List<Things> GetThings()
         {
             List<Things> things = new List<Things>();
 
@@ -1283,13 +1281,13 @@ exit";
         private bool EnterPress = false;
         private bool TestModeDone = false;
         private bool SpawnNewThingPress = false;
-        public string TestMod1Token = "";
-        public string TestMod2Token = "";
-        public string TestMod3Token = "";
+        internal string TestMod1Token = "";
+        internal string TestMod2Token = "";
+        internal string TestMod3Token = "";
 
-        public Color Theme1 = new Color(0.5f, 0f, 1f);
-        public Color Theme2 = Color.black;
-        public float ThemeFadeSpeed = 0.2f;
+        internal Color Theme1 = new Color(0.5f, 0f, 1f);
+        internal Color Theme2 = Color.black;
+        internal float ThemeFadeSpeed = 0.2f;
 
         internal int PointerPositionIndex = 0;
         private int MaxPointerPosition = 0;
@@ -1298,6 +1296,12 @@ exit";
 
         private Vector3 previousLeftPos;
         private Vector3 previousRightPos;
+
+        internal List<string> GetButtons()
+        {
+            List<Things> things = GetThings();
+            return things.Select(t => t.Name).ToList();
+        }
 
         private void Update()
         {
@@ -1640,7 +1644,7 @@ exit";
         }
     }
 
-    public class Things
+    internal class Things
     {
         public string Name = null;
         public bool Enterable = false;
@@ -1648,7 +1652,7 @@ exit";
         public ModButtonInfo mbi = null;
     }
 
-    public class DetailedColor
+    internal class DetailedColor
     {
         public Color color = Color.white;
         public string name = "null";

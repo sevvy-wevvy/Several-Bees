@@ -92,6 +92,16 @@ namespace SeveralBees
             SeveralBeesCore.Instance.ReMakeModManger();
         }
 
+        public Collider GetRightPointer()
+        {
+            return SeveralBeesCore.Instance.RightPointerCollider;
+        }
+
+        public Collider GetLeftPointer()
+        {
+            return SeveralBeesCore.Instance.LeftPointerCollider;
+        }
+
 
         // Orignal asset loader by Skellon, slight tweaks so it works with other bundles https://github.com/skellondev
         private Dictionary<string, List<UnityEngine.Object>> _assetDict = new Dictionary<string, List<UnityEngine.Object>>();
