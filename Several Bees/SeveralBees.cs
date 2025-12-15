@@ -30,6 +30,9 @@ using UnityEngine.InputSystem.HID;
 using UnityEngine.Networking;
 using Photon.Voice;
 using Valve.VR.InteractionSystem;
+using System.Reflection;
+using BepInEx.Logging;
+using System.Runtime.CompilerServices;
 
 namespace SeveralBees
 {
@@ -677,6 +680,7 @@ namespace SeveralBees
                 {
                     new ModButtonInfo { disableMethod = () => PlayerPrefs.SetInt("SBSoundEffects", 0), enableMethod = () => PlayerPrefs.SetInt("SBSoundEffects", 1), enabled = (PlayerPrefs.GetInt("SBSoundEffects", 1) == 1 ? true : false), buttonText = "Sound Effects", isTogglable = true, toolTip = "Toggles sound effects such as button clicks." },
                     new ModButtonInfo { disableMethod = () => PlayerPrefs.SetInt("SBAnimations", 0), enableMethod = () => PlayerPrefs.SetInt("SBAnimations", 1), enabled = (PlayerPrefs.GetInt("SBAnimations", 1) == 1 ? true : false), buttonText = "Animations", isTogglable = true, toolTip = "Toggles animations for Mod Machines spawning in and de-spawning." },
+                    new ModButtonInfo { disableMethod = () => PlayerPrefs.SetInt("SBRestartOnMod", 0), enableMethod = () => PlayerPrefs.SetInt("SBRestartOnMod", 1), enabled = (PlayerPrefs.GetInt("SBRestartOnMod", 1) == 1 ? true : false), buttonText = "Restart On Mod", isTogglable = true, toolTip = "Toggles if the game should automaticly restart on mod install, un-install, and update." },
                 };
 
                 Settings.Load();
@@ -929,6 +933,13 @@ namespace SeveralBees
                     toolTip = $"Uninstalls {ModName}.",
                     method = () => UninstallMod(ModName, ModLink)
                 });
+                Buttons.Add(new ModButtonInfo
+                {
+                    buttonText = "<color=orange>Install Latest</color>",
+                    isTogglable = false,
+                    toolTip = $"Installs the latest version of {ModName}.",
+                    method = () => InstallLatestMod(ModLink, ModName)
+                });
             }
             else
             {
@@ -939,14 +950,14 @@ namespace SeveralBees
                     toolTip = $"Installs {ModName}.",
                     method = () => InstallMod(ModLink, ModName)
                 });
+                Buttons.Add(new ModButtonInfo
+                {
+                    buttonText = "<color=green>Install & Inject</color>",
+                    isTogglable = false,
+                    toolTip = $"Installs {ModName} as well as injecting/loading it.",
+                    method = () => InstallModAndInject(ModLink, ModName)
+                });
             }
-            Buttons.Add(new ModButtonInfo
-            {
-                buttonText = "<color=orange>Install Latest</color>",
-                isTogglable = false,
-                toolTip = $"Installs the latest version of {ModName}.",
-                method = () => InstallLatestMod(ModLink, ModName)
-            });
 
             Buttons.Add(new ModButtonInfo
             {
@@ -997,7 +1008,65 @@ namespace SeveralBees
 
             Api.Instance.tokenListButtonInfo[ModLink] = new List<ModButtonInfo> { new ModButtonInfo { buttonText = "<color=orange>" + "Restarting game..." + "</color>", toolTip = "Please wait.." } };
 
+            if(!Api.Instance.GrabButton("8", "Restart On Mod").enabled) return;
             RestartApp();
+        }
+
+        internal void InstallModAndInject(string ModLink, string ModName)
+        {
+            string pluginsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "BepInEx", "plugins");
+            if (!Directory.Exists(pluginsPath)) Directory.CreateDirectory(pluginsPath);
+
+            string dllPath = Path.Combine(pluginsPath, ModName + ".dll");
+            if (File.Exists(dllPath)) File.Delete(dllPath);
+
+            Api.Instance.tokenListButtonInfo[ModLink] = new List<ModButtonInfo>
+            {
+                new ModButtonInfo { buttonText = "<color=orange>Installing...</color>", toolTip = "Please wait.." }
+            };
+
+            using (var client = new System.Net.WebClient())
+            {
+                client.DownloadFileAsync(new Uri(ModLink), dllPath);
+                while (client.IsBusy) Thread.Sleep(100);
+            }
+            Api.Instance.tokenListButtonInfo[ModLink] = new List<ModButtonInfo>
+            {
+                new ModButtonInfo { buttonText = "<color=green>Installed</color>", toolTip = "Mod fully installed" },
+                new ModButtonInfo { buttonText = "<color=orange>Attempting to load...</color>" }
+            };
+            try
+            {
+                byte[] raw = File.ReadAllBytes(dllPath);
+                Assembly loaded = Assembly.Load(raw);
+
+                foreach (Type type in loaded.GetTypes())
+                {
+                    if (!typeof(BaseUnityPlugin).IsAssignableFrom(type)) continue;
+                    if (type.IsAbstract) continue;
+
+                    var meta = type.GetCustomAttributes(typeof(BepInPlugin), true).FirstOrDefault() as BepInPlugin;
+                    if (meta == null) continue;
+
+                    GameObject go = new GameObject(meta.GUID);
+                    UnityEngine.Object.DontDestroyOnLoad(go);
+
+                    BaseUnityPlugin plugin = (BaseUnityPlugin)go.AddComponent(type);
+
+                    PluginInfo info = new PluginInfo();
+                    typeof(PluginInfo).GetProperty("Metadata")?.SetValue(info, meta);
+                    typeof(PluginInfo).GetProperty("Instance")?.SetValue(info, plugin);
+
+                    typeof(BaseUnityPlugin).GetProperty("Info", BindingFlags.NonPublic | BindingFlags.Instance)?.SetValue(plugin, info);
+                }
+
+                Api.Instance.tokenListButtonInfo[ModLink] = new List<ModButtonInfo>
+                {
+                    new ModButtonInfo { buttonText = "<color=green>Installed</color>", toolTip = "Mod fully installed" },
+                    new ModButtonInfo { buttonText = "<color=green>Loaded</color>", toolTip = "Mod fully loaded" }
+                };
+            }
+            catch { }
         }
 
         internal void UninstallMod(string ModName, string ModLink)
@@ -1017,6 +1086,7 @@ namespace SeveralBees
             Api.Instance.tokenListButtonInfo[ModLink] = new List<ModButtonInfo> { new ModButtonInfo { buttonText = "<color=green>" + "Uninstall Complete" + "</color>", toolTip = "Please wait.." } };
             Api.Instance.tokenListButtonInfo[ModLink] = new List<ModButtonInfo> { new ModButtonInfo { buttonText = "<color=orange>" + "Restarting game..." + "</color>", toolTip = "Please wait.." } };
 
+            if (!Api.Instance.GrabButton("8", "Restart On Mod").enabled) return;
             RestartApp();
         }
 
@@ -1055,6 +1125,7 @@ namespace SeveralBees
 
             Api.Instance.tokenListButtonInfo[ModLink] = new List<ModButtonInfo> { new ModButtonInfo { buttonText = "<color=orange>" + "Restarting game..." + "</color>", toolTip = "Please wait.." } };
 
+            if (!Api.Instance.GrabButton("8", "Restart On Mod").enabled) return;
             RestartApp();
         }
 

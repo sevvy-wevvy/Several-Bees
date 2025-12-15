@@ -61,25 +61,28 @@ namespace SeveralBees
                 }
             }
 
-            using (HttpClient client = new HttpClient())
+            if (Config.ModListLink == "https://raw.githubusercontent.com/sevvy-wevvy/Several-Bees/main/mods.txt")
             {
-                // This API is for easly grabbing MMM mods, please view the link if you dont feel safe or unistall.
-                var content = await client.GetStringAsync("https://sevvy-wevvy.com/mods/gorilla-tag/several-bees/mmm-grab/");
-                var lines = content.Split(new[] { '|' }, StringSplitOptions.RemoveEmptyEntries);
-
-                foreach (var line in lines)
+                using (HttpClient client = new HttpClient())
                 {
-                    var trimmed = line.Trim();
-                    if (trimmed.Length == 0) continue;
+                    // This API is for easly grabbing MMM mods, please view the link if you dont feel safe or unistall.
+                    var content = await client.GetStringAsync("https://sevvy-wevvy.com/mods/gorilla-tag/several-bees/mmm-grab/");
+                    var lines = content.Split(new[] { '|' }, StringSplitOptions.RemoveEmptyEntries);
 
-                    var lastSlash = trimmed.LastIndexOf('/');
-                    if (lastSlash < 0) continue;
+                    foreach (var line in lines)
+                    {
+                        var trimmed = line.Trim();
+                        if (trimmed.Length == 0) continue;
 
-                    var modName = trimmed.Substring(lastSlash + 1);
-                    var dllIndex = modName.IndexOf(".dll", StringComparison.OrdinalIgnoreCase);
-                    if (dllIndex > 0) modName = modName.Substring(0, dllIndex);
+                        var lastSlash = trimmed.LastIndexOf('/');
+                        if (lastSlash < 0) continue;
 
-                    if (!dict.ContainsKey(modName)) dict.Add(modName, trimmed);
+                        var modName = trimmed.Substring(lastSlash + 1);
+                        var dllIndex = modName.IndexOf(".dll", StringComparison.OrdinalIgnoreCase);
+                        if (dllIndex > 0) modName = modName.Substring(0, dllIndex);
+
+                        if (!dict.ContainsKey(modName)) dict.Add(modName, trimmed);
+                    }
                 }
             }
 

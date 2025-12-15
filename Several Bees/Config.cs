@@ -32,7 +32,7 @@ namespace SeveralBees
         // Used when restarting the game to esure BEPINEX boots properly. Go to the steam game, settings icon, properties, updates, and there you can find the app id.
         internal static string SteamAppId = "1533390";
         // Update this number along with the number in your version.txt
-        internal const string CurrentModVersion = "1.1.0";
+        internal const string CurrentModVersion = "1.2.0";
         // The txt that holds the latest version number of the mod.
         internal static string ModVersionLink = "https://raw.githubusercontent.com/sevvy-wevvy/Several-Bees/main/ver.txt";
         // Latest mod download link
