@@ -81,8 +81,8 @@ new ModButtonInfo { disableMethod = () => MyCoolFunction() }
 new ModButtonInfo { toolTip = "Im a very cool button, or maybe a toggle?" }
 ```
 
-## Extra functions
-Heres some functions that will help you out when creating mods.
+## Extra
+Heres some stuff that will help you out when creating mods.
 ```c#
 // Lets you gradient your text with a scrolling effect as seen in the title of Several Bees.
 Extra.Instance.GradientText("Awsome text", Color.white, Color.black, 0.2f);
@@ -93,6 +93,37 @@ Extra.Instance.MakeObjectVisible(MyCoolGameObject, true);
 
 // Lets you set the theme of Several Bees, the default fade speed (3rd varible) is 0.2
 Extra.Instance.SetTheme(Color.black, Color.white, float 0.2f);
+
+// Fetches the Right Pointer
+Collider RightPointer = Extra.Instance.GetRightPointer();
+
+// Fetches the Left Pointer
+Collider RightPointer = Extra.Instance.GetLeftPointer();
+```
+
+## Custom Menu API
+Stuff to make you own Mod Maneger, or somthing else. Who knows!
+```c#
+// Lets you get all of the button names that are shown on the current tab
+List<string> ButtonNames = CustonMenuAPI.Instance.GetButtons()
+
+// Clicks whatever button
+CustonMenuAPI.Instance.ClickButton(int Button)
+
+// Lets you get the index of the currently selected button
+int CurrentButtonSelected = CustonMenuAPI.Instance.GetCurrentButton()
+
+// Lets you set the index of the currently selected button
+CustonMenuAPI.Instance.SetCurrentButton(int Button)
+
+// Clicks the currently select button
+CustonMenuAPI.Instance.ClickCurrentButton()
+
+// Instances a new mod manger
+GameObject MyNewModManeger = CustonMenuAPI.Instance.InstanceModManger()
+
+// Lets you get the name of the current tab
+string TabName = GetTabName()
 ```
 
 ## Asset loading
@@ -105,29 +136,6 @@ if (Extra.Instance.TryGetAsset<GameObject>("MyCoolNameSpcae.MyCoolBundle", "My C
     GameObject coolObject = Instantiate(coolObjectSet);
     //Work with "coolObject" here
 }
-```
-
-## Extra Varible
-In the main Several Bees script there are few public parivle that may be of use to you.
-```c#
-// A list of detailed colors
-List<DetailedColor> colors = SeveralBees.Instance.CycleColors;
-
-// A list of floats
-List<float> floats = SeveralBees.Instance.CycleFloats;
-
-// Emulating button clicks on the mod manger, the bool input is wether it was the left hand.
-SeveralBees.Instance.MmDown(true);
-SeveralBees.Instance.MmUp(true);
-SeveralBees.Instance.MmSelect(true);
-
-// The theme colors for Several Bees
-Color theme1 = SeveralBees.Instance.Theme1;
-Color theme2 = SeveralBees.Instance.Theme2;
-
-// The custom colliders for finger pointers/tips.
-SphereCollider leftPointer = SeveralBees.Instance.LeftPointerCollider;
-SphereCollider realRightPointer = SeveralBees.Instance.RightPointerCollider;
 ```
 
 ## Forking
