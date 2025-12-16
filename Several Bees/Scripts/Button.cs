@@ -26,23 +26,15 @@ namespace SeveralBees.Scripts
         private void Awake()
         {
             UnityEngine.Debug.Log($"[Several Bees] Button '{Name}' Awake");
+            gameObject.layer = LayerMask.NameToLayer(Config.ButtonLayer);
         }
 
-        private void OnCollisionEnter(Collision collision)
+        private void OnTriggerEnter(Collider col)
         {
-            if(collision.collider == SeveralBeesCore.Instance.LeftPointerCollider || collision.collider == SeveralBeesCore.Instance.RightPointerCollider)
+            if (Config.LeftButtonClicked(col) || Config.RightButtonClicked(col))
             {
                 UnityEngine.Debug.Log($"[Several Bees] Button '{Name}' Clicked");
-                Click?.Invoke(collision.collider == SeveralBeesCore.Instance.LeftPointerCollider);
-            }
-        }
-
-        private void OnTriggerEnter(Collision collision)
-        {
-            if (collision.collider == SeveralBeesCore.Instance.LeftPointerCollider || collision.collider == SeveralBeesCore.Instance.RightPointerCollider)
-            {
-                UnityEngine.Debug.Log($"[Several Bees] Button '{Name}' Clicked");
-                Click?.Invoke(collision.collider == SeveralBeesCore.Instance.LeftPointerCollider);
+                Click?.Invoke(Config.LeftButtonClicked(col));
             }
         }
     }

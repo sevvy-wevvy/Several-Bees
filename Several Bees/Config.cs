@@ -32,7 +32,7 @@ namespace SeveralBees
         // Used when restarting the game to esure BEPINEX boots properly. Go to the steam game, settings icon, properties, updates, and there you can find the app id.
         internal static string SteamAppId = "1533390";
         // Update this number along with the number in your version.txt
-        internal const string CurrentModVersion = "1.2.1";
+        internal const string CurrentModVersion = "1.3.0";
         // The txt that holds the latest version number of the mod.
         internal static string ModVersionLink = "https://raw.githubusercontent.com/sevvy-wevvy/Several-Bees/main/ver.txt";
         // Latest mod download link
@@ -55,22 +55,26 @@ namespace SeveralBees
         internal static string PropperShader = "Universal Render Pipeline/Lit";
         // If the game uses URP, and if the fix shader is a URP shader.
         internal static bool IsURP = true;
+        // What triggers everything to startup, MUST TRIGGER Plugin.Instance.CustomStart()
+        internal static async void StartupTriggerThing() { GorillaTagger.OnPlayerSpawned(() => Plugin.Instance.CustomStart()); }
+        // The layer for buttons interactions
+        internal static string ButtonLayer = "GorillaInteractable";
 
 
         // The right hand transform (Set to "new Vector3(0, -integer.MaxValue, 0)" if its not a vr game/doesnt use hands)
         internal static Transform RightHandReference() { return GorillaTagger.Instance.rightHandTransform; }
-        // The offset of the real collider/pointer for interactions
-        internal static Vector3 RightHandPointerOffset = new Vector3(0f, -0.1f, 0f);
         // The input for the right grip button
         internal static bool RightGripDown() { return ControllerInputPoller.instance.rightControllerGripFloat > 0.75f; }
+        // How to check if the button was clicked by the right hand
+        internal static bool RightButtonClicked(Collider Col) { return Col.TryGetComponent(out GorillaTriggerColliderHandIndicator component); }
 
 
         // The left hand transform (Set to "new Vector3(0, -integer.MaxValue, 0)" if its not a vr game/doesnt use hands)
         internal static Transform LeftHandReference() { return GorillaTagger.Instance.leftHandTransform; }
-        // The offset of the real collider/pointer for interactions
-        internal static Vector3 LeftHandPointerOffset = new Vector3(0f, -0.1f, 0f);
         // The input for the left grip button
         internal static bool LeftGripDown() { return ControllerInputPoller.instance.leftControllerGripFloat > 0.75f; }
+        // How to check if the button was clicked by the left hand
+        internal static bool LeftButtonClicked(Collider Col) { return Col.TryGetComponent(out GorillaTriggerColliderHandIndicator component); }
 
 
         // The transform used to determen if the player is alllowed to use keyboard controlls
@@ -85,8 +89,6 @@ namespace SeveralBees
         internal static Vector3 MachineSpawnRoto = new Vector3(0f, 4.075f, 0f);
         // The scale the machine "spawns" with
         internal static Vector3 MachineSpawnScale = new Vector3(1f, 1f, 1f);
-        // When the machine should have colliders, say only in modded gamemodes.
-        internal static bool MachineHasColliders() { return true; }
 
         // The type of computer/Ui that shows in game [FullMachine = Normal Machine/Wallmount, FullComputer = Normal Computer, SimpleButtons = Simple Cubes For Buttons, Text = Only Text, None = Nothing, recommended for using the gui.]
         internal static ComputerType CompType = ComputerType.FullMachine;

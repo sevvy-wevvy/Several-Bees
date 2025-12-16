@@ -31,6 +31,8 @@ namespace SeveralBees
 
         public static Plugin Instance { get; private set; }
 
+        public List<Action> Startup = new List<Action>();
+
         private async void Awake()
         {
             UnityEngine.Debug.Log("[Several Bees] Plugin Awake");
@@ -41,16 +43,21 @@ namespace SeveralBees
             try { StartCoroutine(LoadWav("https://github.com/sevvy-wevvy/Several-Bees/raw/refs/heads/main/Resources/Mod/close.wav")); } catch (Exception e) { UnityEngine.Debug.LogError("[Several Bees] Error loading sound: " + e.Message); }
             try { StartCoroutine(LoadWav("https://github.com/sevvy-wevvy/Several-Bees/raw/refs/heads/main/Resources/Mod/open.wav")); } catch (Exception e) { UnityEngine.Debug.LogError("[Several Bees] Error loading sound: " + e.Message); }
 
-            var url = global::SeveralBees.Config.ModVersionLink + "?date=" + DateTime.UtcNow.ToString("yyyyMMddHHmmss");
-            using (HttpClient client = new HttpClient())
+            try
             {
-                var content = await client.GetStringAsync(url);
-                var latestVersion = content.Trim();
-                SeveralBeesCore.Instance.IsLatestVersion = (latestVersion == global::SeveralBees.Config.CurrentModVersion);
-            }
+                var url = global::SeveralBees.Config.ModVersionLink + "?date=" + DateTime.UtcNow.ToString("yyyyMMddHHmmss");
+                using (HttpClient client = new HttpClient())
+                {
+                    var content = await client.GetStringAsync(url);
+                    var latestVersion = content.Trim();
+                    SeveralBeesCore.Instance.IsLatestVersion = (latestVersion == global::SeveralBees.Config.CurrentModVersion);
+                }
+            } catch { }
+
+            SeveralBees.Config.StartupTriggerThing();
         }
 
-        private void Start()
+        internal async void CustomStart()
         {
             svrlbs = new GameObject("Several Bees");
             svrlbs.AddComponent<SeveralBeesCore>();
@@ -60,6 +67,17 @@ namespace SeveralBees
             svrlbs.AddComponent<CustonMenuAPI>();
             UnityEngine.Debug.Log("[Several Bees] SeveralBees Object Created");
             AssetLoader.LoadAssets();
+            foreach (var action in Startup)
+            {
+                try
+                {
+                    action();
+                }
+                catch (Exception ex)
+                {
+                    UnityEngine.Debug.LogError("[Several Bees] Error executing startup action: " + ex.Message);
+                }
+            }
         }
 
         GameObject svrlbs = null;

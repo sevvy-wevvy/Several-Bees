@@ -104,19 +104,6 @@ namespace SeveralBees
 
             try
             {
-                StartCoroutine(WaitForRigThenCreatePointers());
-            }
-            catch (Exception e)
-            {
-                UnityEngine.Debug.Log("[Several Bees] Error in CreatePointers (Start SeveralBees.SeveralBees): " + e.Message);
-            }
-
-            UnityEngine.Debug.Log("[Several Bees] Pointers Created");
-
-
-
-            try
-            {
                 await Create();
             }
             catch (Exception e)
@@ -138,8 +125,6 @@ namespace SeveralBees
 
         internal AssetBundle Bundle;
 
-        internal List<Collider> ObjectColliders = new List<Collider>();
-
         internal void ReMakeModManger()
         {
             if (ModManegerParent != null)
@@ -153,218 +138,279 @@ namespace SeveralBees
         {
             GameObject Parent = new GameObject("Several Bees || Mod Manger (Instance)");
 
-            if (Config.CompType == ComputerType.SimpleButtons || Config.CompType == ComputerType.Text)
+            try
             {
-                var textObj = new GameObject("SB_Text");
-                TextMeshPro ModMangerText = textObj.AddComponent<TextMeshPro>();
-                ModMangerText.text = "Several Bees";
-                textObj.transform.position = Vector3.zero;
-                textObj.transform.SetParent(Parent.transform);
-                ModMangerText.fontSize = 0.5f;
-                ModMangerText.alignment = TextAlignmentOptions.Center;
-                ModMangerText.gameObject.transform.position = new Vector3(0f, 0.4f, 0f);
-                ModMangerText.color = Color.white;
-                ModMangerTextList.Add(ModMangerText);
-            }
-
-            if (Config.CompType == ComputerType.SimpleButtons)
-            {
-                GameObject ModMangerButtonParent = new GameObject("Buttons");
-                ModMangerButtonParent.transform.SetParent(Parent.transform);
-
-
-
-                var cube1 = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                cube1.name = "SB_Down";
-                cube1.transform.position = new Vector3(-0.1f, 0f, 0.075f);
-                cube1.transform.SetParent(ModMangerButtonParent.transform);
-                cube1.transform.localScale = new Vector3(0.05f, 0.1f, 0.1f);
-                cube1.transform.localRotation = Quaternion.Euler(0f, 90f, 90f);
-                cube1.AddComponent<Scripts.Button>().Name = "SB_Down_Button";
-                cube1.GetComponent<Scripts.Button>().Click += (bool Left) =>
+                if (Config.CompType == ComputerType.SimpleButtons || Config.CompType == ComputerType.Text)
                 {
-                    MmDown(Left);
-                };
-                Extra.Instance.MakeObjectVisible(cube1);
-                Material mat = cube1.GetComponent<Renderer>().material;
-                mat.color = Theme2;
-                ObjectColliders.Add(cube1.GetComponent<Collider>());
-
-                var cube2 = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                cube2.name = "SB_Up";
-                cube2.transform.position = new Vector3(-0.1f, 0f, -0.075f);
-                cube2.transform.SetParent(ModMangerButtonParent.transform);
-                cube2.transform.localScale = new Vector3(0.05f, 0.1f, 0.1f);
-                cube2.transform.localRotation = Quaternion.Euler(0f, 90f, 90f);
-                cube2.AddComponent<Scripts.Button>().Name = "SB_Up_Button";
-                cube2.GetComponent<Scripts.Button>().Click += (bool Left) =>
-                {
-                    MmUp(Left);
-                };
-                Extra.Instance.MakeObjectVisible(cube2);
-                mat = cube2.GetComponent<Renderer>().material;
-                mat.color = Theme2;
-                ObjectColliders.Add(cube2.GetComponent<Collider>());
-
-                var cube3 = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                cube3.name = "SB_Select";
-                cube3.transform.position = new Vector3(0.125f, 0f, 0f);
-                cube3.transform.SetParent(ModMangerButtonParent.transform);
-                cube3.transform.localScale = new Vector3(0.05f, 0.25f, 0.25f);
-                cube3.transform.localRotation = Quaternion.Euler(0f, 90f, 90f);
-                cube3.AddComponent<Scripts.Button>().Name = "SB_Select_Button";
-                cube3.GetComponent<Scripts.Button>().Click += (bool Left) =>
-                {
-                    MmSelect(Left);
-                };
-                Extra.Instance.MakeObjectVisible(cube3);
-                mat = cube3.GetComponent<Renderer>().material;
-                mat.color = Theme2;
-                ObjectColliders.Add(cube3.GetComponent<Collider>());
-
-
-
-
-                ModMangerButtonParent.transform.rotation = Quaternion.Euler(90f, 0, 0f);
-                ModMangerButtonParent.transform.position = new Vector3(-0.025f, 0f, 0f);
-                foreach (Transform ajsfajk in ModMangerButtonParent.transform)
-                {
-                    ajsfajk.GetComponent<Collider>().isTrigger = false;
+                    var textObj = new GameObject("SB_Text");
+                    TextMeshPro ModMangerText = textObj.AddComponent<TextMeshPro>();
+                    ModMangerText.text = "Several Bees";
+                    textObj.transform.position = Vector3.zero;
+                    textObj.transform.SetParent(Parent.transform);
+                    ModMangerText.fontSize = 0.5f;
+                    ModMangerText.alignment = TextAlignmentOptions.Center;
+                    ModMangerText.gameObject.transform.position = new Vector3(0f, 0.4f, 0f);
+                    ModMangerText.color = Color.white;
+                    ModMangerTextList.Add(ModMangerText);
                 }
-            }
 
-            if (Config.CompType == ComputerType.FullComputer)
-            {
-                var textObj = new GameObject("SB_Text");
-                TextMeshPro ModMangerText = textObj.AddComponent<TextMeshPro>();
-                ModMangerText.text = "Several Bees";
-                textObj.transform.position = Vector3.zero;
-                textObj.transform.SetParent(Parent.transform);
-                ModMangerText.fontSize = 0.5f;
-                ModMangerText.alignment = TextAlignmentOptions.Center;
-                ModMangerText.gameObject.transform.position = new Vector3(0f, 0.38f, -0.01f);
-                ModMangerText.color = Color.white;
-                textObj.GetComponent<RectTransform>().sizeDelta = new Vector2(0.4f, 0.35f);
-                ModMangerText.enableAutoSizing = true;
-                ModMangerText.fontSizeMax = 0.5f;
-                ModMangerText.fontSizeMin = 0.2f;
-                ModMangerTextList.Add(ModMangerText);
-
-                GameObject Computer = null;
-                GameObject computerPrefab = null;
-                if (AssetLoader.TryGetAsset<GameObject>("Sb Computer Variant", out computerPrefab))
+                if (Config.CompType == ComputerType.SimpleButtons)
                 {
-                    Computer = Instantiate(computerPrefab);
-                    Computer.transform.SetParent(Parent.transform);
-                    foreach (Transform Child in Computer.transform)
+                    GameObject ModMangerButtonParent = new GameObject("Buttons");
+                    ModMangerButtonParent.transform.SetParent(Parent.transform);
+
+
+
+                    var cube1 = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                    cube1.name = "SB_Down";
+                    cube1.transform.position = new Vector3(-0.1f, 0f, 0.075f);
+                    cube1.transform.SetParent(ModMangerButtonParent.transform);
+                    cube1.transform.localScale = new Vector3(0.05f, 0.1f, 0.1f);
+                    cube1.transform.localRotation = Quaternion.Euler(0f, 90f, 90f);
+                    cube1.AddComponent<Scripts.Button>().Name = "SB_Down_Button";
+                    cube1.GetComponent<Scripts.Button>().Click += (bool Left) =>
                     {
-                        Extra.Instance.MakeObjectVisible(Child.gameObject, false);
-                        if (Child.name == "Up")
-                        {
-                            Child.AddComponent<Scripts.Button>().Name = "SB_Down_Button";
-                            Child.GetComponent<Scripts.Button>().Click += (bool Left) =>
-                            {
-                                MmUp(Left);
-                            };
-                            Child.AddComponent<BoxCollider>();
-                            ObjectColliders.Add(Child.GetComponent<Collider>());
-                        }
-                        else if (Child.name == "Down")
-                        {
-                            Child.AddComponent<Scripts.Button>().Name = "SB_Down_Button";
-                            Child.GetComponent<Scripts.Button>().Click += (bool Left) =>
-                            {
-                                MmDown(Left);
-                            };
-                            Child.AddComponent<BoxCollider>();
-                            ObjectColliders.Add(Child.GetComponent<Collider>());
-                        }
-                        else if (Child.name == "Select")
-                        {
-                            Child.AddComponent<Scripts.Button>().Name = "SB_Down_Button";
-                            Child.GetComponent<Scripts.Button>().Click += (bool Left) =>
-                            {
-                                MmSelect(Left);
-                            };
-                            Child.AddComponent<BoxCollider>();
-                            ObjectColliders.Add(Child.GetComponent<Collider>());
-                        }
-                        else
-                        {
-                            MeshCollider ocl67 = Child.AddComponent<MeshCollider>();
-                            ObjectColliders.Add(ocl67);
-                        }
-                    }
-                    Computer.transform.position = new Vector3(0.07f, 0.09f, -0.1563f);
-                    Computer.transform.rotation = Quaternion.Euler(0f, 180f, 0f);
-                    Computer.transform.localScale = new Vector3(0.15f, 0.15f, 0.15f);
-                }
-            }
+                        MmDown(Left);
+                    };
+                    Extra.Instance.MakeObjectVisible(cube1);
+                    Material mat = cube1.GetComponent<Renderer>().material;
+                    mat.color = Theme2;
 
-            if (Config.CompType == ComputerType.FullMachine)
-            {
-                var textObj = new GameObject("SB_Text");
-                TextMeshPro ModMangerText = textObj.AddComponent<TextMeshPro>();
-                ModMangerText.text = "Several Bees";
-                textObj.transform.position = Vector3.zero;
-                textObj.transform.SetParent(Parent.transform);
-                ModMangerText.fontSize = 0.5f;
-                ModMangerText.alignment = TextAlignmentOptions.Center;
-                ModMangerText.gameObject.transform.position = new Vector3(-0.005f, 0.38f, -0.01f);
-                ModMangerText.color = Color.white;
-                ModMangerTextList.Add(ModMangerText);
-
-                GameObject Machine = null;
-                GameObject machinePrefab = null;
-                if (AssetLoader.TryGetAsset<GameObject>("SbMachine", out machinePrefab))
-                {
-                    Machine = Instantiate(machinePrefab);
-                    Machine.transform.SetParent(Parent.transform);
-                    foreach (Transform Child in Machine.transform)
+                    var cube2 = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                    cube2.name = "SB_Up";
+                    cube2.transform.position = new Vector3(-0.1f, 0f, -0.075f);
+                    cube2.transform.SetParent(ModMangerButtonParent.transform);
+                    cube2.transform.localScale = new Vector3(0.05f, 0.1f, 0.1f);
+                    cube2.transform.localRotation = Quaternion.Euler(0f, 90f, 90f);
+                    cube2.AddComponent<Scripts.Button>().Name = "SB_Up_Button";
+                    cube2.GetComponent<Scripts.Button>().Click += (bool Left) =>
                     {
-                        Extra.Instance.MakeObjectVisible(Child.gameObject, false);
-                        if (Child.name == "Up")
-                        {
-                            Child.AddComponent<Scripts.Button>().Name = "SB_Down_Button";
-                            Child.GetComponent<Scripts.Button>().Click += (bool Left) =>
-                            {
-                                MmUp(Left);
-                            };
-                            Child.AddComponent<BoxCollider>();
-                            ObjectColliders.Add(Child.GetComponent<Collider>());
-                        }
-                        else if (Child.name == "Down")
-                        {
-                            Child.AddComponent<Scripts.Button>().Name = "SB_Down_Button";
-                            Child.GetComponent<Scripts.Button>().Click += (bool Left) =>
-                            {
-                                MmDown(Left);
-                            };
-                            Child.AddComponent<BoxCollider>();
-                            ObjectColliders.Add(Child.GetComponent<Collider>());
-                        }
-                        else if (Child.name == "Select")
-                        {
-                            Child.AddComponent<Scripts.Button>().Name = "SB_Down_Button";
-                            Child.GetComponent<Scripts.Button>().Click += (bool Left) =>
-                            {
-                                MmSelect(Left);
-                            };
-                            Child.AddComponent<BoxCollider>();
-                            ObjectColliders.Add(Child.GetComponent<Collider>());
-                        }
-                        else if (Child.name == "Machine")
-                        {
-                            MeshCollider ocl67 = Child.AddComponent<MeshCollider>();
-                            ObjectColliders.Add(ocl67);
-                        }
+                        MmUp(Left);
+                    };
+                    Extra.Instance.MakeObjectVisible(cube2);
+                    mat = cube2.GetComponent<Renderer>().material;
+                    mat.color = Theme2;
+
+                    var cube3 = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                    cube3.name = "SB_Select";
+                    cube3.transform.position = new Vector3(0.125f, 0f, 0f);
+                    cube3.transform.SetParent(ModMangerButtonParent.transform);
+                    cube3.transform.localScale = new Vector3(0.05f, 0.25f, 0.25f);
+                    cube3.transform.localRotation = Quaternion.Euler(0f, 90f, 90f);
+                    cube3.AddComponent<Scripts.Button>().Name = "SB_Select_Button";
+                    cube3.GetComponent<Scripts.Button>().Click += (bool Left) =>
+                    {
+                        MmSelect(Left);
+                    };
+                    Extra.Instance.MakeObjectVisible(cube3);
+                    mat = cube3.GetComponent<Renderer>().material;
+                    mat.color = Theme2;
+
+
+
+
+                    ModMangerButtonParent.transform.rotation = Quaternion.Euler(90f, 0, 0f);
+                    ModMangerButtonParent.transform.position = new Vector3(-0.025f, 0f, 0f);
+                    foreach (Transform ajsfajk in ModMangerButtonParent.transform)
+                    {
+                        ajsfajk.AddComponent<BoxCollider>();
+                        ajsfajk.GetComponent<Collider>().isTrigger = true;
                     }
-                    Machine.transform.position = new Vector3(0f, 0.04f, 0.02f);
-                    Machine.transform.rotation = Quaternion.Euler(0f, 270f, 0f);
-                    Machine.transform.localScale = new Vector3(0.025f, 0.025f, 0.025f);
+                }
+
+                if (Config.CompType == ComputerType.FullComputer)
+                {
+                    var textObj = new GameObject("SB_Text");
+                    TextMeshPro ModMangerText = textObj.AddComponent<TextMeshPro>();
+                    ModMangerText.text = "Several Bees";
+                    textObj.transform.position = Vector3.zero;
+                    textObj.transform.SetParent(Parent.transform);
+                    ModMangerText.fontSize = 0.5f;
+                    ModMangerText.alignment = TextAlignmentOptions.Center;
+                    ModMangerText.gameObject.transform.position = new Vector3(0f, 0.38f, -0.01f);
+                    ModMangerText.color = Color.white;
+                    textObj.GetComponent<RectTransform>().sizeDelta = new Vector2(0.4f, 0.35f);
+                    ModMangerText.enableAutoSizing = true;
+                    ModMangerText.fontSizeMax = 0.5f;
+                    ModMangerText.fontSizeMin = 0.2f;
+                    ModMangerTextList.Add(ModMangerText);
+
+                    GameObject Computer = null;
+                    GameObject computerPrefab = null;
+                    if (AssetLoader.TryGetAsset<GameObject>("Sb Computer Variant", out computerPrefab))
+                    {
+                        Computer = Instantiate(computerPrefab);
+                        Computer.transform.SetParent(Parent.transform);
+                        foreach (Transform Child in Computer.transform)
+                        {
+                            Extra.Instance.MakeObjectVisible(Child.gameObject, false);
+                            if (Child.name == "Up")
+                            {
+                                Child.AddComponent<Scripts.Button>().Name = "SB_Down_Button";
+                                Child.GetComponent<Scripts.Button>().Click += (bool Left) =>
+                                {
+                                    MmUp(Left);
+                                };
+                                Child.AddComponent<BoxCollider>().isTrigger = true;
+                            }
+                            else if (Child.name == "Down")
+                            {
+                                Child.AddComponent<Scripts.Button>().Name = "SB_Down_Button";
+                                Child.GetComponent<Scripts.Button>().Click += (bool Left) =>
+                                {
+                                    MmDown(Left);
+                                };
+                                Child.AddComponent<BoxCollider>().isTrigger = true;
+                            }
+                            else if (Child.name == "Select")
+                            {
+                                Child.AddComponent<Scripts.Button>().Name = "SB_Down_Button";
+                                Child.GetComponent<Scripts.Button>().Click += (bool Left) =>
+                                {
+                                    MmSelect(Left);
+                                };
+                                Child.AddComponent<BoxCollider>().isTrigger = true;
+                            }
+                        }
+                        Computer.transform.position = new Vector3(0.07f, 0.09f, -0.1563f);
+                        Computer.transform.rotation = Quaternion.Euler(0f, 180f, 0f);
+                        Computer.transform.localScale = new Vector3(0.15f, 0.15f, 0.15f);
+                    }
+                }
+
+                if (Config.CompType == ComputerType.FullMachine)
+                {
+                    var textObj = new GameObject("SB_Text");
+                    TextMeshPro ModMangerText = textObj.AddComponent<TextMeshPro>();
+                    ModMangerText.text = "Several Bees";
+                    textObj.transform.position = Vector3.zero;
+                    textObj.transform.SetParent(Parent.transform);
+                    ModMangerText.fontSize = 0.5f;
+                    ModMangerText.alignment = TextAlignmentOptions.Center;
+                    ModMangerText.gameObject.transform.position = new Vector3(-0.005f, 0.38f, -0.01f);
+                    ModMangerText.color = Color.white;
+                    ModMangerTextList.Add(ModMangerText);
+
+                    GameObject Machine = null;
+                    GameObject machinePrefab = null;
+                    if (AssetLoader.TryGetAsset<GameObject>("SbMachine", out machinePrefab))
+                    {
+                        Machine = Instantiate(machinePrefab);
+                        Machine.transform.SetParent(Parent.transform);
+                        foreach (Transform Child in Machine.transform)
+                        {
+                            Extra.Instance.MakeObjectVisible(Child.gameObject, false);
+                            if (Child.name == "Up")
+                            {
+                                Child.AddComponent<Scripts.Button>().Name = "SB_Down_Button";
+                                Child.GetComponent<Scripts.Button>().Click += (bool Left) =>
+                                {
+                                    MmUp(Left);
+                                };
+                                Child.AddComponent<BoxCollider>().isTrigger = true;
+                            }
+                            else if (Child.name == "Down")
+                            {
+                                Child.AddComponent<Scripts.Button>().Name = "SB_Down_Button";
+                                Child.GetComponent<Scripts.Button>().Click += (bool Left) =>
+                                {
+                                    MmDown(Left);
+                                };
+                                Child.AddComponent<BoxCollider>().isTrigger = true;
+                            }
+                            else if (Child.name == "Select")
+                            {
+                                Child.AddComponent<Scripts.Button>().Name = "SB_Down_Button";
+                                Child.GetComponent<Scripts.Button>().Click += (bool Left) =>
+                                {
+                                    MmSelect(Left);
+                                };
+                                Child.AddComponent<BoxCollider>().isTrigger = true;
+                            }
+                        }
+                        Machine.transform.position = new Vector3(0f, 0.04f, 0.02f);
+                        Machine.transform.rotation = Quaternion.Euler(0f, 270f, 0f);
+                        Machine.transform.localScale = new Vector3(0.025f, 0.025f, 0.025f);
+                    }
                 }
             }
+            catch
+            {
+                if (true)
+                {
+                    var textObj = new GameObject("SB_Text");
+                    TextMeshPro ModMangerText = textObj.AddComponent<TextMeshPro>();
+                    ModMangerText.text = "Several Bees";
+                    textObj.transform.position = Vector3.zero;
+                    textObj.transform.SetParent(Parent.transform);
+                    ModMangerText.fontSize = 0.5f;
+                    ModMangerText.alignment = TextAlignmentOptions.Center;
+                    ModMangerText.gameObject.transform.position = new Vector3(0f, 0.4f, 0f);
+                    ModMangerText.color = Color.white;
+                    ModMangerTextList.Add(ModMangerText);
 
+                    GameObject ModMangerButtonParent = new GameObject("Buttons");
+                    ModMangerButtonParent.transform.SetParent(Parent.transform);
+
+
+
+                    var cube1 = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                    cube1.name = "SB_Down";
+                    cube1.transform.position = new Vector3(-0.1f, 0f, 0.075f);
+                    cube1.transform.SetParent(ModMangerButtonParent.transform);
+                    cube1.transform.localScale = new Vector3(0.05f, 0.1f, 0.1f);
+                    cube1.transform.localRotation = Quaternion.Euler(0f, 90f, 90f);
+                    cube1.AddComponent<Scripts.Button>().Name = "SB_Down_Button";
+                    cube1.GetComponent<Scripts.Button>().Click += (bool Left) =>
+                    {
+                        MmDown(Left);
+                    };
+                    Extra.Instance.MakeObjectVisible(cube1);
+                    Material mat = cube1.GetComponent<Renderer>().material;
+                    mat.color = Theme2;
+
+                    var cube2 = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                    cube2.name = "SB_Up";
+                    cube2.transform.position = new Vector3(-0.1f, 0f, -0.075f);
+                    cube2.transform.SetParent(ModMangerButtonParent.transform);
+                    cube2.transform.localScale = new Vector3(0.05f, 0.1f, 0.1f);
+                    cube2.transform.localRotation = Quaternion.Euler(0f, 90f, 90f);
+                    cube2.AddComponent<Scripts.Button>().Name = "SB_Up_Button";
+                    cube2.GetComponent<Scripts.Button>().Click += (bool Left) =>
+                    {
+                        MmUp(Left);
+                    };
+                    Extra.Instance.MakeObjectVisible(cube2);
+                    mat = cube2.GetComponent<Renderer>().material;
+                    mat.color = Theme2;
+
+                    var cube3 = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                    cube3.name = "SB_Select";
+                    cube3.transform.position = new Vector3(0.125f, 0f, 0f);
+                    cube3.transform.SetParent(ModMangerButtonParent.transform);
+                    cube3.transform.localScale = new Vector3(0.05f, 0.25f, 0.25f);
+                    cube3.transform.localRotation = Quaternion.Euler(0f, 90f, 90f);
+                    cube3.AddComponent<Scripts.Button>().Name = "SB_Select_Button";
+                    cube3.GetComponent<Scripts.Button>().Click += (bool Left) =>
+                    {
+                        MmSelect(Left);
+                    };
+                    Extra.Instance.MakeObjectVisible(cube3);
+                    mat = cube3.GetComponent<Renderer>().material;
+                    mat.color = Theme2;
+
+
+
+
+                    ModMangerButtonParent.transform.rotation = Quaternion.Euler(90f, 0, 0f);
+                    ModMangerButtonParent.transform.position = new Vector3(-0.025f, 0f, 0f);
+                    foreach (Transform ajsfajk in ModMangerButtonParent.transform)
+                    {
+                        ajsfajk.AddComponent<BoxCollider>();
+                        ajsfajk.GetComponent<Collider>().isTrigger = false;
+                    }
+                }
+            }
             GameObject iLoveMen = new GameObject("Distance Indicator"); //what am i doing with these varible
             iLoveMen.transform.SetParent(Parent.transform);
             ModMangerDistanceIndicators.Add(iLoveMen);
@@ -385,11 +431,14 @@ namespace SeveralBees
         {
             try
             {
-                if (!Api.Instance.HasMadeSettings)
+                try
                 {
-                    SeveralBeesCore.Instance.MakeSettings();
-                    Api.Instance.HasMadeSettings = true;
-                }
+                    if (!Api.Instance.HasMadeSettings)
+                    {
+                        SeveralBeesCore.Instance.MakeSettings();
+                        Api.Instance.HasMadeSettings = true;
+                    }
+                } catch { }
 
                 GameObject imAGayTwinkFurryFemboy = InstanceModManger();
                 imAGayTwinkFurryFemboy.name = "Several Bees || Mod Manger";
@@ -515,52 +564,7 @@ namespace SeveralBees
             ToolTipText = "";
         }
 
-        private GameObject LeftPointer = null;
-        internal SphereCollider LeftPointerCollider = null;
-
         internal float ToolTipKillTime = 8f;
-
-        private GameObject RightPointer = null;
-        internal SphereCollider RightPointerCollider = null;
-        private void CreatePointers()
-        {
-            // Code Inspired By IIDK's menu temp
-            try
-            {
-                LeftPointer = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                LeftPointer.name = "Several Bees || Left Pointer";
-                LeftPointer.transform.parent = Config.LeftHandReference();
-                LeftPointer.transform.localPosition = Config.LeftHandPointerOffset;
-                LeftPointer.transform.localScale = new Vector3(0.01f, 0.01f, 0.01f);
-                LeftPointerCollider = LeftPointer.GetComponent<SphereCollider>();
-                LeftPointer.GetComponent<Renderer>().enabled = false;
-
-                RightPointer = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                RightPointer.name = "Several Bees || Right Pointer";
-                RightPointer.transform.parent = Config.RightHandReference();
-                RightPointer.transform.localPosition = Config.RightHandPointerOffset;
-                RightPointer.transform.localScale = new Vector3(0.01f, 0.01f, 0.01f);
-                RightPointerCollider = RightPointer.GetComponent<SphereCollider>();
-                RightPointer.GetComponent<Renderer>().enabled = false;
-
-                previousLeftPos = Config.LeftHandReference().transform.position;
-                previousRightPos = Config.RightHandReference().transform.position;
-            }
-            catch (Exception e)
-            {
-                ListError("Error in CreatePointers: " + e.Message + $" [{e.StackTrace}]");
-            }
-        }
-        private IEnumerator WaitForRigThenCreatePointers()
-        {
-            while (Config.RightHandReference() == null || Config.RightHandReference() == null)
-            {
-                yield return null;
-            }
-
-            CreatePointers();
-            UnityEngine.Debug.Log("[Several Bees] Pointers Created");
-        }
         internal void MakeSettings()
         {
             try
@@ -856,21 +860,27 @@ namespace SeveralBees
 
         internal AudioClip GetLoadedSound(string fileLink)
         {
-            if (string.IsNullOrEmpty(fileLink)) return null;
-            if (Plugin.Instance.LoadedSounds.TryGetValue(fileLink, out AudioClip clip)) return clip;
+            try
+            {
+                if (string.IsNullOrEmpty(fileLink)) return null;
+                if (Plugin.Instance.LoadedSounds.TryGetValue(fileLink, out AudioClip clip)) return clip;
+            } catch { }
             return null;
         }
 
         internal void PlaySound(string Url, float Volume = 0.4f)
         {
-            if(!Api.Instance.GrabButton("8", "Sound Effects").enabled) return;
-            AudioClip Clip = GetLoadedSound(Url);
-            GameObject soundObject = new GameObject("Sev Essence Sound Player");
-            AudioSource Player = soundObject.AddComponent<AudioSource>();
-            Player.clip = Clip;
-            Player.volume = Volume;
-            Player.Play();
-            GameObject.Destroy(soundObject, Player.clip.length);
+            try
+            {
+                if (!Api.Instance.GrabButton("8", "Sound Effects").enabled) return;
+                AudioClip Clip = GetLoadedSound(Url);
+                GameObject soundObject = new GameObject("Sev Essence Sound Player");
+                AudioSource Player = soundObject.AddComponent<AudioSource>();
+                Player.clip = Clip;
+                Player.volume = Volume;
+                Player.Play();
+                GameObject.Destroy(soundObject, Player.clip.length);
+            } catch { }
         }
 
         internal void RefreshModsList()
@@ -1351,14 +1361,6 @@ exit";
                 previousRightPos = Vector3.Lerp(previousRightPos, Config.RightHandReference().position, 0.5f);
             }
             catch { }
-
-            if (ObjectColliders[0].isTrigger != Config.MachineHasColliders())
-            {
-                foreach(Collider col in ObjectColliders)
-                {
-                    col.isTrigger = Config.MachineHasColliders();
-                }
-            }
             if (UnityInput.Current.GetKey(KeyCode.T) && UnityInput.Current.GetKey(KeyCode.E) && UnityInput.Current.GetKey(KeyCode.S))
             {
                 TestMode = true;
