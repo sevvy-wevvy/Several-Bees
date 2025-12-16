@@ -1,4 +1,21 @@
-## Refrance Setup
+## Important
+**---- Startup ----**
+To make sure Several Bees exists before you try to interact with it put anything that try it interact with it in a fuction like the below.
+```c#
+private void Awake()
+{
+    SeveralBees.Plugin.Instance.Startup.Add(InstanceStartThing);
+}
+
+public void InstanceStartThing()
+{
+}
+```
+**---- Example Mods ----**
+Below are verified mods that use Several Bees so you can get an example of how to use Several Bees:
+- [Gorilla Optimizer](https://github.com/sevvy-wevvy/Gorilla-Optimizer)
+- [SSGTA](https://github.com/sevvy-wevvy/Sevs-Stupid-Gorilla-Tag-Addons)
+**---- Refrance Setup ----**
 **Puting the mod a refrance for your csproj tut coming soon**
 For every script you plan on using Several Bees on please add ``using SeveralBees;`` into it so the doc template integrate semlessly.
 ## Menu Creation (Api)
