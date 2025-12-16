@@ -14,7 +14,7 @@ public void InstanceStartThing()
 **---- Example Mods ----**
 Below are verified mods that use Several Bees so you can get an example of how to use Several Bees:
 - [Gorilla Optimizer](https://github.com/sevvy-wevvy/Gorilla-Optimizer)
-- [SSGTA](https://github.com/sevvy-wevvy/Sevs-Stupid-Gorilla-Tag-Addons)  
+- [SSGTA](https://github.com/sevvy-wevvy/Sevs-Stupid-Gorilla-Tag-Addons)  <br>
 **---- Refrance Setup ----**
 **Puting the mod a refrance for your csproj tut coming soon**
 For every script you plan on using Several Bees on please add ``using SeveralBees;`` into it so the doc template integrate semlessly.
