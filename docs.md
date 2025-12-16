@@ -19,7 +19,7 @@ Below are verified mods that use Several Bees so you can get an example of how t
 ---  
 **---- Refrance Setup ----**<br>
 **Puting the mod a refrance for your csproj tut coming soon**<br>
-For every script you plan on using Several Bees on please add ``using SeveralBees;`` into it so the doc template integrate semlessly.
+For every script you plan on using Several Bees on please add ``using SeveralBees;`` into it so the doc templates integrate semlessly.
 ## Menu Creation (Api)
 To create a menu for your own mods its quite easy. First you must generate and save you page token:
 ```c#
