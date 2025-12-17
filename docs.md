@@ -146,7 +146,7 @@ string TabName = GetTabName()
 ```
 
 ## Asset loading
-First run ``Extra.AssetLoad("MyCoolNameSpcae.MyCoolBundle");`` to properly load the assets from your bundle. Recommeneded you do this on plugin awake. To load an asset from your bundle do somthing like the below.
+First run ``Extra.Instance.AssetLoad("MyCoolNameSpcae.MyCoolBundle");`` to properly load the assets from your bundle. Recommeneded you do this on plugin awake. To load an asset from your bundle do somthing like the below.
 Thanks to [Skellon](https://github.com/skellondev) for the base asset loading!
 ```c#
 GameObject coolObjectSet = null;
