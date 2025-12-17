@@ -33,6 +33,7 @@ using Valve.VR.InteractionSystem;
 using System.Reflection;
 using BepInEx.Logging;
 using System.Runtime.CompilerServices;
+using Constants;
 
 namespace SeveralBees
 {
@@ -144,7 +145,7 @@ namespace SeveralBees
                 {
                     var textObj = new GameObject("SB_Text");
                     TextMeshPro ModMangerText = textObj.AddComponent<TextMeshPro>();
-                    ModMangerText.text = "Several Bees";
+                    ModMangerText.text = "<color=orange>Loading...</color>";
                     textObj.transform.position = Vector3.zero;
                     textObj.transform.SetParent(Parent.transform);
                     ModMangerText.fontSize = 0.5f;
@@ -222,7 +223,7 @@ namespace SeveralBees
                 {
                     var textObj = new GameObject("SB_Text");
                     TextMeshPro ModMangerText = textObj.AddComponent<TextMeshPro>();
-                    ModMangerText.text = "Several Bees";
+                    ModMangerText.text = "<color=orange>Loading...</color>";
                     textObj.transform.position = Vector3.zero;
                     textObj.transform.SetParent(Parent.transform);
                     ModMangerText.fontSize = 0.5f;
@@ -282,7 +283,7 @@ namespace SeveralBees
                 {
                     var textObj = new GameObject("SB_Text");
                     TextMeshPro ModMangerText = textObj.AddComponent<TextMeshPro>();
-                    ModMangerText.text = "Several Bees";
+                    ModMangerText.text = "<color=orange>Loading...</color>";
                     textObj.transform.position = Vector3.zero;
                     textObj.transform.SetParent(Parent.transform);
                     ModMangerText.fontSize = 0.5f;
@@ -327,7 +328,26 @@ namespace SeveralBees
                                 };
                                 Child.AddComponent<BoxCollider>().isTrigger = true;
                             }
+                            else if (Child.name == "Back")
+                            {
+                                Child.AddComponent<Scripts.Button>().Name = "SB_Back_Button";
+                                Child.GetComponent<Scripts.Button>().Click += (bool Left) =>
+                                {
+                                    MmBack(Left);
+                                };
+                                Child.AddComponent<BoxCollider>().isTrigger = true;
+                                Child.gameObject.SetActive(false);
+                            }
+                            else if (Child.name == "Back1" || Child.name == "Back2")
+                            {
+                                Child.gameObject.SetActive(false);
+                            }
                         }
+
+                        var mfbbh = new GameObject("Machine Full Back Button Handler");
+                        mfbbh.AddComponent<MachineFullBackButtonHandler>();
+                        mfbbh.transform.SetParent(Parent.transform);
+
                         Machine.transform.position = new Vector3(0f, 0.04f, 0.02f);
                         Machine.transform.rotation = Quaternion.Euler(0f, 270f, 0f);
                         Machine.transform.localScale = new Vector3(0.025f, 0.025f, 0.025f);
@@ -542,6 +562,25 @@ namespace SeveralBees
                 }
             }
         }
+        internal void MmBack(bool Left)
+        {
+            PlaySound("https://github.com/sevvy-wevvy/Several-Bees/raw/refs/heads/main/Resources/Mod/click1.wav");
+            if(SectionName == "Main")
+            {
+                SetToolTip($"<color=grey>[</color>{Extra.GradientText("Several Bees", Theme1, Theme2, ThemeFadeSpeed)}<color=grey>]</color> You are already at the main menu.");
+                return;
+            }
+            string backTarget = "Main";
+            try
+            {
+                backTarget = Api.Instance.tokenListBackToken[SectionName];
+            }
+            catch (Exception e)
+            {
+                ListError("Error in Getting Back Target Token: " + e.Message + $" [{e.StackTrace}]");
+            }
+            Api.Instance.OpenMenu(backTarget);
+        }
 
         internal string ToolTipText = "";
 
@@ -577,6 +616,7 @@ namespace SeveralBees
                     new ModButtonInfo { buttonText = "General Settings", isTogglable = false, method = () => Api.Instance.OpenMenu("8"), toolTip = "Opens the general settings." },
                     new ModButtonInfo { buttonText = "Theme Settings", isTogglable = false, method = () => Api.Instance.OpenMenu("2"), toolTip = "Opens the theme settings." },
                     new ModButtonInfo { buttonText = "<color=yellow>Credits</color>", isTogglable = false, method = () => Api.Instance.OpenMenu("7"), toolTip = "Opens the credits." },
+                    new ModButtonInfo { buttonText = "<color=green>Donate</color>", isTogglable = false, method = () => System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo{ FileName = "https://sevvy-wevvy.com/donate/", UseShellExecute = true }), toolTip = "Lets you donate to me." },
                 };
 
                 Api.Instance.tokenList.Add("Theme", "2");
@@ -678,12 +718,16 @@ namespace SeveralBees
                 Api.Instance.tokenList.Add("General Settings", "8");
                 Api.Instance.tokenListVisable.Add("8", false);
                 Api.Instance.tokenListBackToken.Add("8", "1");
-                Api.Instance.tokenListButtonInfo["8"] = new List<ModButtonInfo>
-                {
+                List<ModButtonInfo> GenSettings = new List<ModButtonInfo>{
                     new ModButtonInfo { disableMethod = () => PlayerPrefs.SetInt("SBSoundEffects", 0), enableMethod = () => PlayerPrefs.SetInt("SBSoundEffects", 1), enabled = (PlayerPrefs.GetInt("SBSoundEffects", 1) == 1 ? true : false), buttonText = "Sound Effects", isTogglable = true, toolTip = "Toggles sound effects such as button clicks." },
                     new ModButtonInfo { disableMethod = () => PlayerPrefs.SetInt("SBAnimations", 0), enableMethod = () => PlayerPrefs.SetInt("SBAnimations", 1), enabled = (PlayerPrefs.GetInt("SBAnimations", 1) == 1 ? true : false), buttonText = "Animations", isTogglable = true, toolTip = "Toggles animations for Mod Machines spawning in and de-spawning." },
                     new ModButtonInfo { disableMethod = () => PlayerPrefs.SetInt("SBRestartOnMod", 0), enableMethod = () => PlayerPrefs.SetInt("SBRestartOnMod", 1), enabled = (PlayerPrefs.GetInt("SBRestartOnMod", 1) == 1 ? true : false), buttonText = "Restart On Mod", isTogglable = true, toolTip = "Toggles if the game should automaticly restart on mod install, un-install, and update." },
+                    new ModButtonInfo { disableMethod = () => PlayerPrefs.SetInt("SBOpenGesture", 0), enableMethod = () => PlayerPrefs.SetInt("SBOpenGesture", 1), enabled = (PlayerPrefs.GetInt("SBOpenGesture", 1) == 1 ? true : false), buttonText = "Open Gesture", isTogglable = true, toolTip = "Toggles if the mod should spawn a new machine when the user does the spawn gesture." },
                 };
+
+                if(Config.CompType == ComputerType.FullMachine) GenSettings.Add(new ModButtonInfo { disableMethod = () => PlayerPrefs.SetInt("SBPhysBackButton", 0), enableMethod = () => PlayerPrefs.SetInt("SBPhysBackButton", 1), enabled = (PlayerPrefs.GetInt("SBPhysBackButton", 0) == 1 ? true : false), buttonText = "Physical Back Button", isTogglable = true, toolTip = "Toggles if the mod maneger has a physical back button." });
+
+                Api.Instance.tokenListButtonInfo["8"] = GenSettings;
 
                 Settings.Load();
                 Settings.SetButtonNames();
@@ -1014,9 +1058,10 @@ namespace SeveralBees
             if (File.Exists(destFile)) File.Delete(destFile);
             File.Move(tempFile, destFile);
 
+            if (!Api.Instance.GrabButton("8", "Restart On Mod").enabled) return;
+
             Api.Instance.tokenListButtonInfo[ModLink] = new List<ModButtonInfo> { new ModButtonInfo { buttonText = "<color=orange>" + "Restarting game..." + "</color>", toolTip = "Please wait.." } };
 
-            if(!Api.Instance.GrabButton("8", "Restart On Mod").enabled) return;
             RestartApp();
         }
 
@@ -1092,9 +1137,11 @@ namespace SeveralBees
             File.Move(dllPath, deletePath);
 
             Api.Instance.tokenListButtonInfo[ModLink] = new List<ModButtonInfo> { new ModButtonInfo { buttonText = "<color=green>" + "Uninstall Complete" + "</color>", toolTip = "Please wait.." } };
-            Api.Instance.tokenListButtonInfo[ModLink] = new List<ModButtonInfo> { new ModButtonInfo { buttonText = "<color=orange>" + "Restarting game..." + "</color>", toolTip = "Please wait.." } };
 
             if (!Api.Instance.GrabButton("8", "Restart On Mod").enabled) return;
+
+            Api.Instance.tokenListButtonInfo[ModLink] = new List<ModButtonInfo> { new ModButtonInfo { buttonText = "<color=orange>" + "Restarting game..." + "</color>", toolTip = "Please wait.." } };
+
             RestartApp();
         }
 
@@ -1131,9 +1178,9 @@ namespace SeveralBees
             if (File.Exists(destFile)) File.Delete(destFile);
             File.Move(tempFile, destFile);
 
-            Api.Instance.tokenListButtonInfo[ModLink] = new List<ModButtonInfo> { new ModButtonInfo { buttonText = "<color=orange>" + "Restarting game..." + "</color>", toolTip = "Please wait.." } };
-
             if (!Api.Instance.GrabButton("8", "Restart On Mod").enabled) return;
+
+            Api.Instance.tokenListButtonInfo[ModLink] = new List<ModButtonInfo> { new ModButtonInfo { buttonText = "<color=orange>" + "Restarting game..." + "</color>", toolTip = "Please wait.." } };
             RestartApp();
         }
 
@@ -1262,7 +1309,7 @@ exit";
                 {
                     ListError("Error in Getting Back Target Token: " + e.Message + $" [{e.StackTrace}]");
                 }
-                things.Add(new Things { Name = "<color=red>Back</color>", Enterable = true, Token = backTarget });
+                if(!Api.Instance.GrabButton("8", "Physical Back Button").enabled) things.Add(new Things { Name = "<color=red>Back</color>", Enterable = true, Token = backTarget });
 
                 foreach (ModButtonInfo mbi in Api.Instance.tokenListButtonInfo[SectionName])
                 {
@@ -1313,8 +1360,15 @@ exit";
             return things.Select(t => t.Name).ToList();
         }
 
+        private bool PBB = (PlayerPrefs.GetInt("SBPhysBackButton", 0) == 1 ? true : false);
         private void Update()
         {
+            if (Api.Instance.GrabButton("8", "Physical Back Button").enabled != PBB)
+            {
+                PBB = Api.Instance.GrabButton("8", "Physical Back Button").enabled;
+                if(PBB) PointerPositionIndex--;
+                else PointerPositionIndex++;
+            }
             for (int i = ModMangerDistanceIndicators.Count - 1; i >= 0; i--)
             {
                 if (ModMangerDistanceIndicators[i] == null) ModMangerDistanceIndicators.RemoveAt(i);
@@ -1339,7 +1393,7 @@ exit";
                 // if you can figure out how to make this better PLEASE make a pull reqeust!
                 float distance = Vector3.Distance(Config.LeftHandReference().position, Config.RightHandReference().position);
 
-                if (distance < Config.gripThreshold * 1.25f && Config.RightGripDown() && Config.LeftGripDown())
+                if (distance < Config.gripThreshold * 1.25f && Config.RightGripDown() && Config.LeftGripDown() && Api.Instance.GrabButton("8", "Open Gesture").enabled)
                 {
                     float previousDistance = Vector3.Distance(previousLeftPos, previousRightPos);
                     float distanceDelta = distance - previousDistance;

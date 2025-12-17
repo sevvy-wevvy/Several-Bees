@@ -43,6 +43,34 @@ namespace SeveralBees
             try { StartCoroutine(LoadWav("https://github.com/sevvy-wevvy/Several-Bees/raw/refs/heads/main/Resources/Mod/close.wav")); } catch (Exception e) { UnityEngine.Debug.LogError("[Several Bees] Error loading sound: " + e.Message); }
             try { StartCoroutine(LoadWav("https://github.com/sevvy-wevvy/Several-Bees/raw/refs/heads/main/Resources/Mod/open.wav")); } catch (Exception e) { UnityEngine.Debug.LogError("[Several Bees] Error loading sound: " + e.Message); }
 
+            SeveralBees.Config.StartupTriggerThing();
+        }
+
+        internal async void CustomStart()
+        {
+            try
+            {
+                svrlbs = new GameObject("Several Bees");
+                svrlbs.AddComponent<SeveralBeesCore>();
+                svrlbs.AddComponent<Extra>();
+                svrlbs.AddComponent<Api>();
+                svrlbs.AddComponent<ModBrowser>();
+                svrlbs.AddComponent<CustonMenuAPI>();
+                UnityEngine.Debug.Log("[Several Bees] SeveralBees Object Created");
+                AssetLoader.LoadAssets();
+                foreach (var action in Startup)
+                {
+                    try
+                    {
+                        action();
+                    }
+                    catch (Exception ex)
+                    {
+                        UnityEngine.Debug.LogError("[Several Bees] Error executing startup action: " + ex.Message);
+                    }
+                }
+            } catch { }
+
             try
             {
                 var url = global::SeveralBees.Config.ModVersionLink + "?date=" + DateTime.UtcNow.ToString("yyyyMMddHHmmss");
@@ -52,32 +80,9 @@ namespace SeveralBees
                     var latestVersion = content.Trim();
                     SeveralBeesCore.Instance.IsLatestVersion = (latestVersion == global::SeveralBees.Config.CurrentModVersion);
                 }
-            } catch { }
-
-            SeveralBees.Config.StartupTriggerThing();
-        }
-
-        internal async void CustomStart()
-        {
-            svrlbs = new GameObject("Several Bees");
-            svrlbs.AddComponent<SeveralBeesCore>();
-            svrlbs.AddComponent<Extra>();
-            svrlbs.AddComponent<Api>();
-            svrlbs.AddComponent<ModBrowser>();
-            svrlbs.AddComponent<CustonMenuAPI>();
-            UnityEngine.Debug.Log("[Several Bees] SeveralBees Object Created");
-            AssetLoader.LoadAssets();
-            foreach (var action in Startup)
-            {
-                try
-                {
-                    action();
-                }
-                catch (Exception ex)
-                {
-                    UnityEngine.Debug.LogError("[Several Bees] Error executing startup action: " + ex.Message);
-                }
             }
+            catch { }
+
         }
 
         GameObject svrlbs = null;

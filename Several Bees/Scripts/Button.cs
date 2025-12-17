@@ -23,6 +23,10 @@ namespace SeveralBees.Scripts
     {
         public Action<bool> Click;
         public string Name;
+
+        public float Debounce = 0.25f;
+        private static float LastPress;
+
         private void Awake()
         {
             UnityEngine.Debug.Log($"[Several Bees] Button '{Name}' Awake");
@@ -31,8 +35,9 @@ namespace SeveralBees.Scripts
 
         private void OnTriggerEnter(Collider col)
         {
-            if (Config.LeftButtonClicked(col) || Config.RightButtonClicked(col))
+            if (Config.LeftButtonClicked(col) || Config.RightButtonClicked(col) && Time.time > LastPress + Debounce)
             {
+                LastPress = Time.time;
                 UnityEngine.Debug.Log($"[Several Bees] Button '{Name}' Clicked");
                 Click?.Invoke(Config.LeftButtonClicked(col));
             }

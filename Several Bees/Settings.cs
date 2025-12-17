@@ -23,10 +23,11 @@ namespace SeveralBees
     {
         public static string GetColorName(Color color, bool ColorText = true)
         {
+            Color32 target = color;
             foreach (var detailed in SeveralBeesCore.Instance.CycleColors)
             {
-                if (detailed.color == color)
-                    return ColorText ? $"<color=#{ColorUtility.ToHtmlStringRGB(detailed.color)}>" + detailed.name + "</color>" : detailed.name;
+                Color32 stored = detailed.color;
+                if (target.r == stored.r && target.g == stored.g && target.b == stored.b) return ColorText ? $"<color=#{ColorUtility.ToHtmlStringRGB(detailed.color)}>" + detailed.name + "</color>" : detailed.name;
             }
             return "Custom";
         }
