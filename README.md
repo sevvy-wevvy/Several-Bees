@@ -26,6 +26,9 @@
   <a href="https://sevvy-wevvy.com/patreon" target="_blank" style="margin-left:10px;">
     <img src="https://img.shields.io/badge/Support%20me%20on-Patreon-FF424D?style=for-the-badge&logo=patreon&logoColor=white" alt="Support me on Patreon" width="160", height="18">
   </a>
+  <a href="https://sevvy-wevvy.com/throne" target="_blank" style="margin-left:10px;">
+    <img src="https://img.shields.io/badge/Support%20me%20on-Throne-5B5BFF?style=for-the-badge&logo=gift&logoColor=white" alt="Support me on Throne" width="160", height="18">
+  </a>
 </p>
 
 <p align="center">
