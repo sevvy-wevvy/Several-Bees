@@ -60,15 +60,6 @@ MMM is relitivly easy to use, below are the dowloand links for difrent operating
 </details>
 
 <details>
-<summary align="center"><b>📄 Docs 📄</b></summary>
-
-<p align="center">
-Want to use this lib for your own projects, or maybe fork it to a different game?  
-<a href="https://github.com/sevvy-wevvy/Several-Bees/blob/main/docs.md">Check out the Docs!</a>
-</p>
-</details>
-
-<details>
 <summary align="center"><b>🌃 Pictures 🌃<b></summary>
 
 <p align="center">
@@ -83,6 +74,15 @@ Want to use this lib for your own projects, or maybe fork it to a different game
  <img src="https://github.com/sevvy-wevvy/Several-Bees/blob/main/Resources/GitHub/7.png?raw=true" width=70% height=auto</img><br>
  <img src="https://github.com/sevvy-wevvy/Several-Bees/blob/main/Resources/GitHub/8.png?raw=true" width=70% height=auto</img><br>
 </div><br>
+</p>
+</details>
+
+<details>
+<summary align="center"><b>📄 Docs 📄</b></summary>
+
+<p align="center">
+Want to use this lib for your own projects, or maybe fork it to a different game?  
+<a href="https://github.com/sevvy-wevvy/Several-Bees/blob/main/docs.md">Check out the Docs!</a>
 </p>
 </details>
 
