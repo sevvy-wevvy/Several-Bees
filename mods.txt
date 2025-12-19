@@ -1,3 +1,4 @@
+https://github.com/sevvy-wevvy/Sevs-Mod-Checker/releases/latest/download/SevsModChecker.dll
 https://github.com/sevvy-wevvy/Sevs-Stupid-Gorilla-Tag-Addons/releases/latest/download/SSGTA.dll
 https://github.com/sevvy-wevvy/Gorilla-Optimizer/releases/latest/download/GorillaOptimizer.dll
 https://github.com/sevvy-wevvy/Monke-Monke-Music/releases/latest/download/MonkeMonkeMusic.dll
