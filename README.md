@@ -37,7 +37,7 @@
 <p align="center">
 To easly install Several Bees, you can use Monke Mod Manager<br>
 MMM is relitivly easy to use, below are the dowloand links for difrent operating systems.<br>
-<a href="https://github.com/The-Graze/MonkeModManager/releases/latest/download/MonkeModManager.exe">Windows</a><br>
+<a href="https://github.com/arielthemonke/MonkeModManager/releases/latest/download/MonkeModManager.exe">Windows</a><br>
 <a href="https://github.com/arielthemonke/MonkeModManager/releases/latest/download/MonkeModManager.Linux">Linux</a>
 </p>
 </details>
