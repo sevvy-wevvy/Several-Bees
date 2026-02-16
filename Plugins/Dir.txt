@@ -1,1 +1,1 @@
-gorillatag:
+gorillatag:https://github.com/sevvy-wevvy/Sevs-Stupid-Gorilla-Tag-Addons/releases/latest/download/SSGTA.dll
