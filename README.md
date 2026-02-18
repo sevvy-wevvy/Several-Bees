@@ -35,8 +35,8 @@
 <summary align="center"><b>✅ Easy Install ✅</b></summary>
 
 <p align="center">
-To easly install Several Bees, you can use Monke Mod Manager<br>
-MMM is relatively easy to use, below are the dowloand links for difrent operating systems.<br>
+To easily install Several Bees, you can use Monke Mod Manager<br>
+MMM is relatively easy to use, below are the download links for different operating systems.<br>
 <a href="https://github.com/arielthemonke/MonkeModManager/releases/latest/download/MonkeModManager.exe">Windows</a><br>
 <a href="https://github.com/arielthemonke/MonkeModManager/releases/latest/download/MonkeModManager.Linux">Linux</a>
 </p>
@@ -47,7 +47,7 @@ MMM is relatively easy to use, below are the dowloand links for difrent operatin
 
 <p align="center">
 <b>`/Backtick</b> - Toggles the gui if enabled<br>
-<b>M</b> - Spawns a new instance of the ModManger machine infront of you if enabled
+<b>M</b> - Spawns a new instance of the ModManager machine infront of you if enabled
 </p>
 </details>
 
@@ -91,8 +91,8 @@ Want to use this lib for your own projects, or maybe fork it to a different game
 
 <p align="center">
 Want to help with this lib? <a href="https://github.com/sevvy-wevvy/Several-Bees/pulls">Make A pull request!</a><br>
-Pull request allow for anyone to request a change to this code. Intern meaning that <b>YOU</b> can contribute to this project.<br>
-As long as it works, and doesnt vary off too far from the main idea its very likely it get accepted!
+Pull request allow for anyone to request a change to this code. In turn meaning that <b>YOU</b> can contribute to this project.<br>
+As long as it works, and doesn't vary off too far from the main idea it's very likely it get accepted!
 </p>
 </details>
 
