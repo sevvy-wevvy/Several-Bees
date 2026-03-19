@@ -1,9 +1,0 @@
-https://github.com/sevvy-wevvy/Gorilla-Optimizer/releases/latest/download/GorillaOptimizer.dll
-https://github.com/sevvy-wevvy/Monke-Monke-Music/releases/latest/download/MonkeMonkeMusic.dll
-https://github.com/sirkingbinx/Utilla/releases/latest/download/Utilla.dll
-https://github.com/BrokenSt0ne/Consoleless/releases/latest/download/Consoleless.dll
-https://github.com/developer9998/GorillaFriends/releases/latest/download/GorillaFriends.dll
-https://github.com/developer9998/MonkePhone/releases/latest/download/MonkePhone.dll
-https://github.com/Loafiat/MelInEx/releases/latest/download/MelInEx.dll
-https://github.com/sirkingbinx/BingusNametagsPlusPlus/releases/latest/download/BingusNametagsPlusPlus.BepInEx.dll
-
