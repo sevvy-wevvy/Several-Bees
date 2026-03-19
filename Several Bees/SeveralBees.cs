@@ -94,6 +94,19 @@ namespace SeveralBees
         private HashSet<string> modUpdateAvailable = new HashSet<string>();
         private bool fetchingModUpdates = false;
 
+        private const string SbApiBase = "https://sevvy-wevvy.com/mods/sb/api.php";
+        private string sbToken = null;
+        private string sbUsername = null;
+        private List<SbMod> sbModCache = new List<SbMod>();
+        private List<SbMod> sbModDisplayed = new List<SbMod>();
+        private bool sbFetchingMods = false;
+        private string sbCurrentBrowserTab = "all";
+        private HashSet<int> sbUpvotedMods = new HashSet<int>();
+        private bool sbLoginPending = false;
+        private string sbLoginCode = null;
+        private int sbModPageSize = 15;
+        private int sbModDisplayCount = 15;
+
         #endregion
 
         #region Color & Float Cycles
@@ -132,6 +145,8 @@ namespace SeveralBees
             UnityEngine.Debug.Log("[Several Bees] Awake");
             Instance = this;
             CheckModUpdatesAsync();
+            SbValidateStoredToken();
+            SbValidateInstalledMods();
         }
 
         private async void Start()
@@ -681,16 +696,16 @@ namespace SeveralBees
                 Api.Instance.tokenListBackToken.Add("4", "Main");
                 Api.Instance.tokenListButtonInfo["4"] = new List<ModButtonInfo>
                 {
-                    new ModButtonInfo { buttonText = "Mod Browser",    method = () => Api.Instance.OpenMenu("5"),                                    toolTip = "Browse and install mods."          },
-                    new ModButtonInfo { buttonText = "Mod Toggle",     method = () => { RefreshInstalledMods(); Api.Instance.OpenMenu("9"); },         toolTip = "Toggle installed mods on or off." },
-                    new ModButtonInfo { buttonText = "Mod Config",     method = () => Api.Instance.OpenMenu("6"),                                    toolTip = "Opens the mod config editor."      },
-                    new ModButtonInfo { buttonText = "Loadouts",       method = () => { RefreshLoadoutsMenu(); Api.Instance.OpenMenu("10"); },         toolTip = "Manage mod loadouts."              },
+                    new ModButtonInfo { buttonText = "Install Mods",   method = () => { SbLoadBrowser("all"); Api.Instance.OpenMenu("11"); }, toolTip = "Browse and install mods from the SB catalog." },
+                    new ModButtonInfo { buttonText = "Mod Toggle",     method = () => { RefreshInstalledMods(); Api.Instance.OpenMenu("9"); },  toolTip = "Toggle installed mods on or off."            },
+                    new ModButtonInfo { buttonText = "Mod Config",     method = () => Api.Instance.OpenMenu("6"),                              toolTip = "Opens the mod config editor."                 },
+                    new ModButtonInfo { buttonText = "Loadouts",       method = () => { RefreshLoadoutsMenu(); Api.Instance.OpenMenu("10"); },  toolTip = "Manage mod loadouts."                         },
                 };
 
-                Api.Instance.tokenList.Add("Mod Browser", "5");
-                Api.Instance.tokenListVisable.Add("5", false);
-                Api.Instance.tokenListBackToken.Add("5", "4");
-                Api.Instance.tokenListButtonInfo["5"] = new List<ModButtonInfo>();
+                Api.Instance.tokenList.Add("Install Mods", "11");
+                Api.Instance.tokenListVisable.Add("11", false);
+                Api.Instance.tokenListBackToken.Add("11", "4");
+                Api.Instance.tokenListButtonInfo["11"] = new List<ModButtonInfo>();
 
                 Api.Instance.tokenList.Add("Mod Config", "6");
                 Api.Instance.tokenListVisable.Add("6", false);
@@ -759,7 +774,6 @@ namespace SeveralBees
 
                 Settings.Load();
                 Settings.SetButtonNames();
-                RefreshModsList();
                 RefreshConfigEditor();
             }
             catch (Exception e)
@@ -900,6 +914,7 @@ namespace SeveralBees
                             OpenConfigPage(modName, filePath);
                         }
                     });
+                    AddConfigResetButton(buttons, e);
                 }
                 else if (isEnum)
                 {
@@ -921,6 +936,7 @@ namespace SeveralBees
                             OpenConfigPage(modName, filePath);
                         }
                     });
+                    AddConfigResetButton(buttons, e);
                 }
             }
 
@@ -966,187 +982,35 @@ namespace SeveralBees
             if (fetchingModUpdates) return;
             fetchingModUpdates = true;
 
-            await Task.Delay(500);
+            await Task.Delay(1000);
 
-            var snap = new List<KeyValuePair<string, string>>(cachedMods);
-
-            if (snap.Count == 0)
+            if (!sbModCache.Any())
             {
                 fetchingModUpdates = false;
                 return;
             }
 
-            var tasks = snap.Select(async mod =>
+            var tasks = sbModCache.Select(async mod =>
             {
-                string link = mod.Value;
+                string repoUrl = mod.RepoUrl;
                 try
                 {
-                    string latest = await ModBrowser.Instance.GetGitHubTagAsync(link);
-                    string saved = PlayerPrefs.GetString("SBModVer_" + link, "");
-                    bool needsUpdate = !string.IsNullOrEmpty(saved) && saved != latest;
-                    return new KeyValuePair<string, bool>(link, needsUpdate);
+                    string latest = await ModBrowser.Instance.GetGitHubTagAsync(repoUrl + "/releases/latest/download/" + mod.DllName);
+                    string saved = PlayerPrefs.GetString("SBModVer_" + repoUrl, "");
+                    return new KeyValuePair<string, bool>(repoUrl, !string.IsNullOrEmpty(saved) && saved != latest);
                 }
-                catch { return new KeyValuePair<string, bool>(link, false); }
+                catch { return new KeyValuePair<string, bool>(repoUrl, false); }
             }).ToList();
 
             var results = await Task.WhenAll(tasks);
-
             modUpdateAvailable.Clear();
             foreach (var r in results)
                 if (r.Value) modUpdateAvailable.Add(r.Key);
 
             fetchingModUpdates = false;
-            RebuildModBrowserButtons();
-        }
 
-        internal void RefreshModsList()
-        {
-            Api.Instance.tokenListButtonInfo["5"] = new List<ModButtonInfo>
-            {
-                new ModButtonInfo { buttonText = "<color=red>Loading...</color>", toolTip = "Loading mod catalog..." }
-            };
-
-            ModBrowser.Instance.GetMods(mods =>
-            {
-                cachedMods = mods.Where(m =>
-                {
-                    string n = StripHtml(m.Key).Trim('"', ' ', '\t', '\n', '\r');
-                    if (string.IsNullOrWhiteSpace(n)) return false;
-                    if (n.Contains('"') || n.Contains("://")) return false;
-                    if (n.Contains(".com") || n.Contains(".io") || n.Contains(".net") || n.Contains(".org")) return false;
-                    if (n.Length < 2 || n.Length > 64) return false;
-                    return true;
-                }).ToList();
-
-                if (currentSortMode == "Most Downloaded" && !fetchingDownloadCounts)
-                    FetchDownloadCountsThenRebuild();
-                else
-                    RebuildModBrowserButtons();
-
-                CheckModUpdatesAsync();
-            });
-        }
-
-        private void RebuildModBrowserButtons()
-        {
-            string pluginsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "BepInEx", "plugins");
-
-            var sorted = new List<KeyValuePair<string, string>>(cachedMods);
-
-            switch (currentSortMode)
-            {
-                case "Alphabetical":
-                    sorted = sorted.OrderBy(m => StripHtml(m.Key).Trim('"', ' ')).ToList();
-                    break;
-                case "Most Downloaded":
-                    sorted = sorted.OrderByDescending(m => modDownloadCounts.ContainsKey(m.Value) ? modDownloadCounts[m.Value] : 0).ToList();
-                    break;
-                case "Installed":
-                    sorted = sorted.OrderByDescending(m =>
-                    {
-                        string n = StripHtml(m.Key).Trim('"', ' ');
-                        return File.Exists(Path.Combine(pluginsPath, n + ".dll")) || File.Exists(Path.Combine(pluginsPath, n + ".dll.disabled")) ? 1 : 0;
-                    }).ToList();
-                    break;
-                case "Needs Update":
-                    sorted = sorted.OrderByDescending(m => modUpdateAvailable.Contains(m.Value) ? 1 : 0).ToList();
-                    break;
-            }
-
-            var sortModes = new[] { "Classic", "Alphabetical", "Most Downloaded", "Installed", "Needs Update" };
-            int curIdx = Array.IndexOf(sortModes, currentSortMode);
-            if (curIdx < 0) curIdx = 0;
-            int nextIdx = (curIdx + 1) % sortModes.Length;
-
-            var buttons = new List<ModButtonInfo>
-            {
-                new ModButtonInfo
-                {
-                    buttonText = $"<color=grey>Sort: </color>{currentSortMode}",
-                    toolTip = $"Currently sorting by {currentSortMode}. Click to switch to {sortModes[nextIdx]}.",
-                    method = () =>
-                    {
-                        currentSortMode = sortModes[nextIdx];
-                        if (currentSortMode == "Most Downloaded" && modDownloadCounts.Count == 0)
-                            FetchDownloadCountsThenRebuild();
-                        else
-                            RebuildModBrowserButtons();
-                    }
-                },
-                new ModButtonInfo
-                {
-                    buttonText = "<color=red>Refresh</color>",
-                    toolTip = "Refreshes the catalog and re-checks for updates.",
-                    method = () => { modDownloadCounts.Clear(); modUpdateAvailable.Clear(); RefreshModsList(); }
-                }
-            };
-
-            foreach (var mod in sorted)
-            {
-                string n = StripHtml(mod.Key).Trim('"', ' ', '\t', '\n', '\r');
-                string l = mod.Value;
-                bool hasUpdate = modUpdateAvailable.Contains(l);
-                string label = hasUpdate ? $"{n} <color=red>(!)</color>" : n;
-                string tip = hasUpdate ? $"Update available for '{n}'." : $"Opens the page for '{n}'.";
-                buttons.Add(new ModButtonInfo { buttonText = label, toolTip = tip, method = () => OpenCodeModPage(n, l) });
-            }
-
-            Api.Instance.tokenListButtonInfo["5"] = buttons;
-        }
-
-        private async void FetchDownloadCountsThenRebuild()
-        {
-            fetchingDownloadCounts = true;
-
-            Api.Instance.tokenListButtonInfo["5"] = new List<ModButtonInfo>
-            {
-                new ModButtonInfo { buttonText = "<color=orange>Fetching download counts...</color>", toolTip = "Grabbing GitHub stats." }
-            };
-
-            var tasks = cachedMods.Select(async mod =>
-            {
-                string link = mod.Value;
-                int idx = link.IndexOf("/releases/");
-                string repoBase = idx != -1 ? link.Substring(0, idx) : link;
-
-                string[] parts = repoBase.TrimEnd('/').Split('/');
-                if (parts.Length < 2) return new KeyValuePair<string, int>(link, 0);
-
-                string owner = parts[parts.Length - 2];
-                string repo = parts[parts.Length - 1];
-                string apiUrl = $"https://api.github.com/repos/{owner}/{repo}/releases";
-
-                try
-                {
-                    using (var client = new System.Net.WebClient())
-                    {
-                        client.Headers.Add("User-Agent", "SeveralBees");
-                        string json = await client.DownloadStringTaskAsync(apiUrl);
-                        int total = 0;
-                        int searchFrom = 0;
-                        while (true)
-                        {
-                            int dcIdx = json.IndexOf("\"download_count\":", searchFrom);
-                            if (dcIdx < 0) break;
-                            int valStart = dcIdx + 17;
-                            int valEnd = valStart;
-                            while (valEnd < json.Length && char.IsDigit(json[valEnd])) valEnd++;
-                            if (int.TryParse(json.Substring(valStart, valEnd - valStart), out int count))
-                                total += count;
-                            searchFrom = valEnd;
-                        }
-                        return new KeyValuePair<string, int>(link, total);
-                    }
-                }
-                catch { return new KeyValuePair<string, int>(link, 0); }
-            }).ToList();
-
-            var results = await Task.WhenAll(tasks);
-            foreach (var r in results)
-                modDownloadCounts[r.Key] = r.Value;
-
-            fetchingDownloadCounts = false;
-            RebuildModBrowserButtons();
+            if (modUpdateAvailable.Count > 0)
+                SbRebuildBrowserButtons();
         }
 
         internal void RefreshInstalledMods()
@@ -1279,68 +1143,6 @@ namespace SeveralBees
             RefreshInstalledMods();
         }
 
-        private async void SaveModVersionAsync(string modLink)
-        {
-            try
-            {
-                string tag = await ModBrowser.Instance.GetGitHubTagAsync(modLink);
-                PlayerPrefs.SetString("SBModVer_" + modLink, tag);
-            }
-            catch { }
-        }
-
-        internal void OpenCodeModPage(string modName, string modLink)
-        {
-            string pluginsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "BepInEx", "plugins");
-            string dllPath = Path.Combine(pluginsPath, modName + ".dll");
-            string disabledPath = dllPath + ".disabled";
-
-            bool installed = File.Exists(dllPath);
-            bool disabled = !installed && File.Exists(disabledPath);
-            bool hasUpdate = modUpdateAvailable.Contains(modLink);
-
-            var buttons = new List<ModButtonInfo>();
-
-            if (hasUpdate)
-                buttons.Add(new ModButtonInfo { buttonText = "<color=red>(!) Update Available</color>", toolTip = "A newer version is available. Use Install Latest to update.", method = () => InstallLatestMod(modLink, modName) });
-
-            if (installed)
-            {
-                buttons.Add(new ModButtonInfo { buttonText = "<color=yellow>Disable</color>", toolTip = $"Disables {modName} (restart required).", method = () => ToggleMod(modName, modLink, false) });
-                buttons.Add(new ModButtonInfo { buttonText = "<color=orange>Install Latest</color>", toolTip = $"Updates {modName} to the latest version.", method = () => InstallLatestMod(modLink, modName) });
-                buttons.Add(new ModButtonInfo { buttonText = "<color=red>Uninstall</color>", toolTip = $"Removes {modName}.", method = () => UninstallMod(modName, modLink) });
-            }
-            else if (disabled)
-            {
-                buttons.Add(new ModButtonInfo { buttonText = "<color=green>Enable</color>", toolTip = $"Re-enables {modName} (restart required).", method = () => ToggleMod(modName, modLink, true) });
-                buttons.Add(new ModButtonInfo { buttonText = "<color=red>Uninstall</color>", toolTip = $"Fully removes the disabled {modName}.", method = () => UninstallMod(modName, modLink) });
-            }
-            else
-            {
-                buttons.Add(new ModButtonInfo { buttonText = "<color=green>Install</color>", toolTip = $"Installs {modName}.", method = () => InstallMod(modLink, modName) });
-                buttons.Add(new ModButtonInfo { buttonText = "<color=green>Install & Inject</color>", toolTip = $"Installs and hot-loads {modName}.", method = () => InstallModAndInject(modLink, modName) });
-            }
-
-            buttons.Add(new ModButtonInfo
-            {
-                buttonText = "Open GitHub",
-                toolTip = $"Opens the GitHub for {modName}.",
-                method = () =>
-                {
-                    string link = modLink;
-                    int idx = link.IndexOf("/releases/");
-                    if (idx != -1) link = link.Substring(0, idx);
-                    Process.Start(new ProcessStartInfo { FileName = link, UseShellExecute = true });
-                }
-            });
-
-            Api.Instance.tokenList[modName] = modLink;
-            if (!Api.Instance.tokenListVisable.ContainsKey(modLink)) Api.Instance.tokenListVisable[modLink] = false;
-            if (!Api.Instance.tokenListBackToken.ContainsKey(modLink)) Api.Instance.tokenListBackToken[modLink] = "5";
-            Api.Instance.tokenListButtonInfo[modLink] = buttons;
-            Api.Instance.OpenMenu(modLink);
-        }
-
         #endregion
 
         #region Mod Install / Toggle / Uninstall
@@ -1382,8 +1184,7 @@ namespace SeveralBees
 
             using (var client = new System.Net.WebClient())
             {
-                client.DownloadProgressChanged += (s, e) => Api.Instance.tokenListButtonInfo[modLink] = new List<ModButtonInfo> { new ModButtonInfo { buttonText = $"<color=orange>Installing... {e.ProgressPercentage}%</color>", toolTip = "" } };
-                client.DownloadFileCompleted += (s, e) => Api.Instance.tokenListButtonInfo[modLink] = new List<ModButtonInfo> { new ModButtonInfo { buttonText = "<color=green>Install Complete</color>", toolTip = "" } };
+                client.DownloadProgressChanged += (s, e) => SetToolTip($"<color=orange>Installing {modName}... {e.ProgressPercentage}%</color>");
                 client.DownloadFileAsync(new Uri(modLink), tempFile);
                 while (client.IsBusy) Thread.Sleep(100);
             }
@@ -1392,12 +1193,12 @@ namespace SeveralBees
             if (File.Exists(dest)) File.Delete(dest);
             File.Move(tempFile, dest);
 
-            SaveModVersionAsync(modLink);
-            modUpdateAvailable.Remove(modLink);
-            RebuildModBrowserButtons();
+            string repoUrl = sbModCache.FirstOrDefault(m => m.DllName == modName + ".dll")?.RepoUrl ?? modLink;
+            modUpdateAvailable.Remove(repoUrl);
+            SbSaveVersionAsync(repoUrl, modLink);
+            SetToolTip($"<color=green>{modName} installed.</color>");
 
             if (!Api.Instance.GrabButton("8", "Restart On Mod").enabled) return;
-            Api.Instance.tokenListButtonInfo[modLink] = new List<ModButtonInfo> { new ModButtonInfo { buttonText = "<color=orange>Restarting...</color>", toolTip = "" } };
             RestartApp();
         }
 
@@ -1409,7 +1210,7 @@ namespace SeveralBees
             string dllPath = Path.Combine(pluginsPath, modName + ".dll");
             if (File.Exists(dllPath)) File.Delete(dllPath);
 
-            Api.Instance.tokenListButtonInfo[modLink] = new List<ModButtonInfo> { new ModButtonInfo { buttonText = "<color=orange>Installing...</color>", toolTip = "" } };
+            SetToolTip($"<color=orange>Installing {modName}...</color>");
 
             using (var client = new System.Net.WebClient())
             {
@@ -1417,52 +1218,33 @@ namespace SeveralBees
                 while (client.IsBusy) Thread.Sleep(100);
             }
 
-            Api.Instance.tokenListButtonInfo[modLink] = new List<ModButtonInfo>
-            {
-                new ModButtonInfo { buttonText = "<color=green>Installed</color>",       toolTip = "" },
-                new ModButtonInfo { buttonText = "<color=orange>Loading...</color>",     toolTip = "" }
-            };
-
             TryInjectAssembly(dllPath);
 
-            Api.Instance.tokenListButtonInfo[modLink] = new List<ModButtonInfo>
-            {
-                new ModButtonInfo { buttonText = "<color=green>Installed</color>", toolTip = "" },
-                new ModButtonInfo { buttonText = "<color=green>Loaded</color>",    toolTip = "" }
-            };
-
-            SaveModVersionAsync(modLink);
-            modUpdateAvailable.Remove(modLink);
-            RebuildModBrowserButtons();
+            string repoUrl = sbModCache.FirstOrDefault(m => m.DllName == modName + ".dll")?.RepoUrl ?? modLink;
+            modUpdateAvailable.Remove(repoUrl);
+            SbSaveVersionAsync(repoUrl, modLink);
+            SetToolTip($"<color=green>{modName} installed and loaded.</color>");
         }
 
         internal void UninstallMod(string modName, string modLink)
         {
-            Api.Instance.tokenListButtonInfo[modLink] = new List<ModButtonInfo> { new ModButtonInfo { buttonText = "<color=orange>Uninstalling...</color>", toolTip = "" } };
-
             string basePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "BepInEx", "plugins");
             string dllPath = Path.Combine(basePath, modName + ".dll");
             string disabledPath = dllPath + ".disabled";
 
             string target = File.Exists(dllPath) ? dllPath : File.Exists(disabledPath) ? disabledPath : null;
-            if (target == null)
-            {
-                Api.Instance.tokenListButtonInfo[modLink] = new List<ModButtonInfo> { new ModButtonInfo { buttonText = "<color=red>Not Found</color>", toolTip = "" } };
-                return;
-            }
+            if (target == null) { SetToolTip($"<color=red>{modName} not found on disk.</color>"); return; }
 
             string deletePath = target + ".delete";
             if (File.Exists(deletePath)) File.Delete(deletePath);
             File.Move(target, deletePath);
 
-            Api.Instance.tokenListButtonInfo[modLink] = new List<ModButtonInfo> { new ModButtonInfo { buttonText = "<color=green>Uninstalled</color>", toolTip = "" } };
-
-            PlayerPrefs.DeleteKey("SBModVer_" + modLink);
-            modUpdateAvailable.Remove(modLink);
-            RebuildModBrowserButtons();
+            string repoUrl = sbModCache.FirstOrDefault(m => m.DllName == modName + ".dll")?.RepoUrl ?? modLink;
+            PlayerPrefs.DeleteKey("SBModVer_" + repoUrl);
+            modUpdateAvailable.Remove(repoUrl);
+            SetToolTip($"<color=green>{modName} uninstalled.</color>");
 
             if (!Api.Instance.GrabButton("8", "Restart On Mod").enabled) return;
-            Api.Instance.tokenListButtonInfo[modLink] = new List<ModButtonInfo> { new ModButtonInfo { buttonText = "<color=orange>Restarting...</color>", toolTip = "" } };
             RestartApp();
         }
 
@@ -1471,24 +1253,18 @@ namespace SeveralBees
             string pluginsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "BepInEx", "plugins");
             string dllPath = Path.Combine(pluginsPath, modName + ".dll");
 
-            if (!File.Exists(dllPath))
-            {
-                Api.Instance.tokenListButtonInfo[modLink] = new List<ModButtonInfo> { new ModButtonInfo { buttonText = "<color=red>Not Found</color>", toolTip = "" } };
-                return;
-            }
+            if (!File.Exists(dllPath)) { SetToolTip($"<color=red>{modName}.dll not found.</color>"); return; }
 
             string deletePath = dllPath + ".delete";
             if (File.Exists(deletePath)) File.Delete(deletePath);
             File.Move(dllPath, deletePath);
 
             if (!Directory.Exists(pluginsPath)) Directory.CreateDirectory(pluginsPath);
-
             string tempFile = Path.Combine(Path.GetTempPath(), modName + ".dll");
 
             using (var client = new System.Net.WebClient())
             {
-                client.DownloadProgressChanged += (s, e) => Api.Instance.tokenListButtonInfo[modLink] = new List<ModButtonInfo> { new ModButtonInfo { buttonText = $"<color=orange>Installing... {e.ProgressPercentage}%</color>", toolTip = "" } };
-                client.DownloadFileCompleted += (s, e) => Api.Instance.tokenListButtonInfo[modLink] = new List<ModButtonInfo> { new ModButtonInfo { buttonText = "<color=green>Install Complete</color>", toolTip = "" } };
+                client.DownloadProgressChanged += (s, e) => SetToolTip($"<color=orange>Updating {modName}... {e.ProgressPercentage}%</color>");
                 client.DownloadFileAsync(new Uri(modLink), tempFile);
                 while (client.IsBusy) Thread.Sleep(100);
             }
@@ -1497,13 +1273,534 @@ namespace SeveralBees
             if (File.Exists(dest)) File.Delete(dest);
             File.Move(tempFile, dest);
 
-            SaveModVersionAsync(modLink);
-            modUpdateAvailable.Remove(modLink);
-            RebuildModBrowserButtons();
+            string repoUrl = sbModCache.FirstOrDefault(m => m.DllName == modName + ".dll")?.RepoUrl ?? modLink;
+            modUpdateAvailable.Remove(repoUrl);
+            SbSaveVersionAsync(repoUrl, modLink);
+            SetToolTip($"<color=green>{modName} updated.</color>");
 
             if (!Api.Instance.GrabButton("8", "Restart On Mod").enabled) return;
-            Api.Instance.tokenListButtonInfo[modLink] = new List<ModButtonInfo> { new ModButtonInfo { buttonText = "<color=orange>Restarting...</color>", toolTip = "" } };
             RestartApp();
+        }
+
+        private async void SbSaveVersionAsync(string repoUrl, string downloadLink)
+        {
+            try
+            {
+                string tag = await ModBrowser.Instance.GetGitHubTagAsync(downloadLink);
+                if (!string.IsNullOrEmpty(tag))
+                    PlayerPrefs.SetString("SBModVer_" + repoUrl, tag);
+            }
+            catch { }
+        }
+
+        #endregion
+
+        #region SB Platform
+
+        private async Task<string> SbPost(string action, Dictionary<string, string> fields)
+        {
+            try
+            {
+                using (var client = new System.Net.WebClient())
+                {
+                    client.Headers.Add("Content-Type", "application/x-www-form-urlencoded");
+                    var data = new System.Collections.Specialized.NameValueCollection();
+                    data["action"] = action;
+                    foreach (var kv in fields) data[kv.Key] = kv.Value;
+                    if (!string.IsNullOrEmpty(sbToken)) data["token"] = sbToken;
+                    var result = await client.UploadValuesTaskAsync(new Uri(SbApiBase), "POST", data);
+                    return System.Text.Encoding.UTF8.GetString(result);
+                }
+            }
+            catch { return null; }
+        }
+
+        private async Task<string> SbGet(string action, Dictionary<string, string> query = null)
+        {
+            try
+            {
+                var url = SbApiBase + "?action=" + Uri.EscapeDataString(action);
+                if (query != null)
+                    foreach (var kv in query) url += "&" + Uri.EscapeDataString(kv.Key) + "=" + Uri.EscapeDataString(kv.Value);
+                if (!string.IsNullOrEmpty(sbToken)) url += "&token=" + Uri.EscapeDataString(sbToken);
+                using (var client = new System.Net.WebClient())
+                {
+                    client.Headers.Add("User-Agent", "SeveralBees");
+                    return await client.DownloadStringTaskAsync(url);
+                }
+            }
+            catch { return null; }
+        }
+
+        private string SbJsonString(string json, string key)
+        {
+            string search = $"\"{key}\":\"";
+            int idx = json?.IndexOf(search) ?? -1;
+            if (idx < 0) return null;
+            int start = idx + search.Length;
+            int end = start;
+            while (end < json.Length && json[end] != '"') { if (json[end] == '\\') end++; end++; }
+            return json.Substring(start, end - start);
+        }
+
+        private bool SbJsonBool(string json, string key)
+        {
+            string search = $"\"{key}\":";
+            int idx = json?.IndexOf(search) ?? -1;
+            if (idx < 0) return false;
+            int start = idx + search.Length;
+            return json.Substring(start).TrimStart().StartsWith("true");
+        }
+
+        private int SbJsonInt(string json, string key)
+        {
+            string search = $"\"{key}\":";
+            int idx = json?.IndexOf(search) ?? -1;
+            if (idx < 0) return 0;
+            int start = idx + search.Length;
+            int end = start;
+            string tail = json.Substring(start).TrimStart();
+            int i = 0;
+            while (i < tail.Length && (char.IsDigit(tail[i]) || tail[i] == '-')) i++;
+            int.TryParse(tail.Substring(0, i), out int val);
+            return val;
+        }
+
+        private List<SbMod> SbParseModList(string json)
+        {
+            var result = new List<SbMod>();
+            if (string.IsNullOrEmpty(json)) return result;
+            int modsStart = json.IndexOf("\"mods\":[");
+            if (modsStart >= 0) json = json.Substring(modsStart + 8);
+
+            int depth = 0; int objStart = -1;
+            for (int i = 0; i < json.Length; i++)
+            {
+                if (json[i] == '{') { if (depth == 0) objStart = i; depth++; }
+                else if (json[i] == '}')
+                {
+                    depth--;
+                    if (depth == 0 && objStart >= 0)
+                    {
+                        string obj = json.Substring(objStart, i - objStart + 1);
+                        result.Add(new SbMod
+                        {
+                            Id = SbJsonInt(obj, "id"),
+                            Name = SbJsonString(obj, "name") ?? "",
+                            DllName = SbJsonString(obj, "dll_name") ?? "",
+                            RepoUrl = SbJsonString(obj, "repo_url") ?? "",
+                            Description = SbJsonString(obj, "description") ?? "",
+                            ImageUrl = SbJsonString(obj, "image_url") ?? "",
+                            Author = SbJsonString(obj, "author_username") ?? "",
+                            Upvotes = SbJsonInt(obj, "upvotes"),
+                            IsVerified = SbJsonInt(obj, "is_verified") == 1,
+                            IsFeatured = SbJsonInt(obj, "is_featured") == 1,
+                        });
+                        objStart = -1;
+                    }
+                }
+            }
+            return result;
+        }
+
+        internal async void SbLoadBrowser(string tab)
+        {
+            sbCurrentBrowserTab = tab;
+            sbModDisplayCount = sbModPageSize;
+            sbToken = PlayerPrefs.GetString("GggUserToken", null);
+
+            Api.Instance.tokenListButtonInfo["11"] = new List<ModButtonInfo>
+            {
+                new ModButtonInfo { buttonText = "<color=orange>Loading...</color>", toolTip = "Fetching mod catalog." }
+            };
+
+            string gameSlug = UnityEngine.Application.productName.Replace(" ", "").ToLowerInvariant();
+            string gameJson = await SbGet("register_game", new Dictionary<string, string> { ["slug"] = gameSlug });
+            int gameId = gameJson != null ? SbJsonInt(gameJson, "id") : 0;
+
+            var queryParams = new Dictionary<string, string> { ["tab"] = tab, ["page"] = "1" };
+            if (gameId > 0) queryParams["game_id"] = gameId.ToString();
+
+            string json = await SbGet("list_mods", queryParams);
+            var raw = SbParseModList(json);
+
+            sbModCache = raw
+                .OrderByDescending(m => m.IsFeatured ? 2 : m.IsVerified ? 1 : 0)
+                .ThenByDescending(m => m.Upvotes)
+                .ThenBy(m => m.Name)
+                .ToList();
+
+            if (!string.IsNullOrEmpty(sbToken))
+                await SbRefreshUpvotes();
+
+            SbRebuildBrowserButtons();
+        }
+
+        private void SbRebuildBrowserButtons()
+        {
+            var tabs = new[] { "all", "featured", "verified", "unverified" };
+            int curIdx = Array.IndexOf(tabs, sbCurrentBrowserTab);
+            int nextIdx = (curIdx + 1) % tabs.Length;
+
+            var buttons = new List<ModButtonInfo>
+            {
+                new ModButtonInfo
+                {
+                    buttonText = $"<color=grey>Tab: </color>{sbCurrentBrowserTab}",
+                    toolTip = "Cycle through All, Featured, Verified, Unverified.",
+                    method = () => SbLoadBrowser(tabs[(Array.IndexOf(tabs, sbCurrentBrowserTab) + 1) % tabs.Length])
+                },
+                new ModButtonInfo
+                {
+                    buttonText = string.IsNullOrEmpty(sbToken) ? "<color=grey>Click Me To Login</color>" : $"<color=green>@{sbUsername ?? "Logged In"}</color>",
+                    toolTip = string.IsNullOrEmpty(sbToken) ? "Login with GGGravity to upvote mods." : "Click to log out.",
+                    method = () =>
+                    {
+                        if (string.IsNullOrEmpty(sbToken)) SbStartLogin();
+                        else
+                        {
+                            sbToken = null;
+                            sbUsername = null;
+                            PlayerPrefs.DeleteKey("GggUserToken");
+                            sbUpvotedMods.Clear();
+                            SetToolTip("<color=grey>Logged out.</color>");
+                            SbRebuildBrowserButtons();
+                        }
+                    }
+                },
+                new ModButtonInfo
+                {
+                    buttonText = "Open Dashboard",
+                    toolTip = "Opens the Several Bees mod dashboard in your browser.",
+                    method = () => Process.Start(new ProcessStartInfo { FileName = "https://sevvy-wevvy.com/mods/sb/dashboard/", UseShellExecute = true })
+                },
+                new ModButtonInfo { buttonText = "<color=red>Refresh</color>", toolTip = "Reloads the catalog.", method = () => SbLoadBrowser(sbCurrentBrowserTab) }
+            };
+
+            if (!sbModCache.Any())
+            {
+                buttons.Add(new ModButtonInfo { buttonText = "<color=grey>No mods found.</color>", toolTip = "" });
+            }
+            else
+            {
+                int count = Mathf.Min(sbModDisplayCount, sbModCache.Count);
+                for (int i = 0; i < count; i++)
+                {
+                    var m = sbModCache[i];
+                    bool upvoted = sbUpvotedMods.Contains(m.Id);
+                    bool needsUpdate = modUpdateAvailable.Contains(m.RepoUrl);
+                    string label = m.IsFeatured ? $"<color=yellow>[Featured]</color> {m.Name}"
+                                 : m.IsVerified ? $"<color=green>[Verified]</color> {m.Name}"
+                                                 : $"<color=grey>[Unverified]</color> {m.Name}";
+                    if (upvoted) label += " <color=purple>▲</color>";
+                    if (needsUpdate) label += " <color=red>(!)</color>";
+                    buttons.Add(new ModButtonInfo
+                    {
+                        buttonText = label,
+                        toolTip = $"{m.Name} by @{m.Author} · ▲{m.Upvotes}" + (m.IsVerified ? " · Verified" : " · Unverified") + (needsUpdate ? " · Update available" : ""),
+                        method = () => SbOpenModPage(m)
+                    });
+                }
+
+                if (sbModDisplayCount < sbModCache.Count)
+                {
+                    buttons.Add(new ModButtonInfo
+                    {
+                        buttonText = $"<color=grey>Load More ({sbModCache.Count - sbModDisplayCount} remaining)</color>",
+                        toolTip = "Load 15 more mods.",
+                        method = () =>
+                        {
+                            sbModDisplayCount += sbModPageSize;
+                            SbRebuildBrowserButtons();
+                        }
+                    });
+                }
+            }
+
+            Api.Instance.tokenListButtonInfo["11"] = buttons;
+        }
+
+        private async Task SbRefreshUpvotes()
+        {
+            sbUpvotedMods.Clear();
+            foreach (var mod in sbModCache)
+            {
+                string res = await SbGet("get_user_upvote", new Dictionary<string, string> { ["mod_id"] = mod.Id.ToString() });
+                if (res != null && SbJsonBool(res, "upvoted")) sbUpvotedMods.Add(mod.Id);
+            }
+        }
+
+        internal void SbOpenModPage(SbMod mod)
+        {
+            string token = $"sbmod_{mod.Id}";
+            if (!Api.Instance.tokenListVisable.ContainsKey(token)) Api.Instance.tokenListVisable[token] = false;
+            if (!Api.Instance.tokenListBackToken.ContainsKey(token)) Api.Instance.tokenListBackToken[token] = "11";
+
+            string pluginsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "BepInEx", "plugins");
+            string dllPath = Path.Combine(pluginsPath, mod.DllName);
+            string disabledPath = dllPath + ".disabled";
+            bool installed = File.Exists(dllPath);
+            bool disabled = !installed && File.Exists(disabledPath);
+            bool upvoted = sbUpvotedMods.Contains(mod.Id);
+
+            var buttons = new List<ModButtonInfo>();
+
+            if (!mod.IsVerified)
+                buttons.Add(new ModButtonInfo { buttonText = "<color=yellow>[Unverified]</color> Install at your own risk.", toolTip = "This mod has not been reviewed." });
+
+            if (!string.IsNullOrEmpty(mod.Description))
+                buttons.Add(new ModButtonInfo { buttonText = "<color=grey>About</color>", toolTip = mod.Description });
+
+            buttons.Add(new ModButtonInfo
+            {
+                buttonText = upvoted ? "<color=purple>▲ Upvoted</color>" : "▲ Upvote",
+                toolTip = $"{mod.Upvotes} upvotes. {(string.IsNullOrEmpty(sbToken) ? "Login to upvote." : "Click to toggle your upvote.")}",
+                method = () => SbToggleUpvote(mod)
+            });
+
+            if (installed)
+            {
+                buttons.Add(new ModButtonInfo { buttonText = "<color=yellow>Disable</color>", toolTip = $"Disables {mod.Name}.", method = () => ToggleMod(mod.DllName.Replace(".dll", ""), mod.RepoUrl, false) });
+                buttons.Add(new ModButtonInfo { buttonText = "<color=orange>Install Latest</color>", toolTip = $"Updates {mod.Name}.", method = () => InstallLatestMod(mod.RepoUrl + "/releases/latest/download/" + mod.DllName, mod.DllName.Replace(".dll", "")) });
+                buttons.Add(new ModButtonInfo { buttonText = "<color=red>Uninstall</color>", toolTip = $"Removes {mod.Name}.", method = () => UninstallMod(mod.DllName.Replace(".dll", ""), mod.RepoUrl) });
+            }
+            else if (disabled)
+            {
+                buttons.Add(new ModButtonInfo { buttonText = "<color=green>Enable</color>", toolTip = $"Re-enables {mod.Name}.", method = () => ToggleMod(mod.DllName.Replace(".dll", ""), mod.RepoUrl, true) });
+                buttons.Add(new ModButtonInfo { buttonText = "<color=red>Uninstall</color>", toolTip = $"Removes disabled {mod.Name}.", method = () => UninstallMod(mod.DllName.Replace(".dll", ""), mod.RepoUrl) });
+            }
+            else
+            {
+                buttons.Add(new ModButtonInfo
+                {
+                    buttonText = "<color=green>Install</color>",
+                    toolTip = mod.IsVerified ? $"Installs {mod.Name}." : $"{mod.Name} is unverified. Proceed?",
+                    method = () =>
+                    {
+                        if (!mod.IsVerified)
+                            SetToolTip($"<color=yellow>[Unverified]</color> Select Install again to confirm.");
+                        string dlUrl = mod.RepoUrl.TrimEnd('/') + "/releases/latest/download/" + mod.DllName;
+                        InstallMod(dlUrl, mod.DllName.Replace(".dll", ""));
+                    }
+                });
+            }
+
+            buttons.Add(new ModButtonInfo
+            {
+                buttonText = "Open GitHub",
+                toolTip = $"Opens {mod.Name} on GitHub.",
+                method = () => Process.Start(new ProcessStartInfo { FileName = mod.RepoUrl, UseShellExecute = true })
+            });
+
+            Api.Instance.tokenList[$"SB: {mod.Name}"] = token;
+            Api.Instance.tokenListButtonInfo[token] = buttons;
+            Api.Instance.OpenMenu(token);
+        }
+
+        internal async void SbToggleUpvote(SbMod mod)
+        {
+            if (string.IsNullOrEmpty(sbToken)) { SbStartLogin(); return; }
+            string res = await SbPost("toggle_upvote", new Dictionary<string, string> { ["mod_id"] = mod.Id.ToString() });
+            if (res == null) { SetToolTip("<color=red>Failed to upvote.</color>"); return; }
+            bool nowUpvoted = SbJsonBool(res, "upvoted");
+            if (nowUpvoted) { sbUpvotedMods.Add(mod.Id); mod.Upvotes++; }
+            else { sbUpvotedMods.Remove(mod.Id); mod.Upvotes = Math.Max(0, mod.Upvotes - 1); }
+            SetToolTip(nowUpvoted ? $"<color=purple>▲ Upvoted {mod.Name}!</color>" : $"Removed upvote from {mod.Name}.");
+            SbOpenModPage(mod);
+        }
+
+        internal async void SbStartLogin()
+        {
+            if (sbLoginPending) { SetToolTip($"<color=orange>Code: {sbLoginCode ?? "..."}</color> — visit 3gv.org/link"); return; }
+            sbLoginPending = true;
+
+            Api.Instance.tokenListButtonInfo["11"][1] = new ModButtonInfo
+            {
+                buttonText = "<color=grey>Click Me To Login</color>",
+                toolTip = "Generating login code...",
+                method = () => { if (sbLoginPending && !string.IsNullOrEmpty(sbLoginCode)) Process.Start(new ProcessStartInfo { FileName = "https://3gv.org/link?code=" + Uri.EscapeDataString(sbLoginCode), UseShellExecute = true }); }
+            };
+
+            try
+            {
+                using (var client = new System.Net.WebClient())
+                {
+                    client.Headers.Add("User-Agent", "SeveralBees");
+                    string json = await client.DownloadStringTaskAsync("https://3gv.org/link/?action=generate");
+                    sbLoginCode = SbJsonString(json, "code");
+                }
+            }
+            catch { sbLoginCode = null; }
+
+            if (string.IsNullOrEmpty(sbLoginCode))
+            {
+                sbLoginPending = false;
+                SetToolTip("<color=red>Failed to generate login code.</color>");
+                Api.Instance.tokenListButtonInfo["11"][1] = new ModButtonInfo
+                {
+                    buttonText = "<color=grey>Click Me To Login</color>",
+                    toolTip = "Login with GGGravity to upvote mods.",
+                    method = () => SbStartLogin()
+                };
+                return;
+            }
+
+            Process.Start(new ProcessStartInfo { FileName = "https://3gv.org/link?code=" + Uri.EscapeDataString(sbLoginCode), UseShellExecute = true });
+            SetToolTip($"<color=orange>Code: {sbLoginCode}</color> — visit 3gv.org/link and enter this code.");
+            Api.Instance.tokenListButtonInfo["11"][1] = new ModButtonInfo
+            {
+                buttonText = "<color=grey>Click Me To Login</color>",
+                toolTip = $"Code: {sbLoginCode} — visit 3gv.org/link and enter this code. Click to reopen.",
+                method = () => Process.Start(new ProcessStartInfo { FileName = "https://3gv.org/link?code=" + Uri.EscapeDataString(sbLoginCode), UseShellExecute = true })
+            };
+
+            _ = SbPollLogin(sbLoginCode);
+        }
+
+        private async Task SbPollLogin(string code)
+        {
+            for (int attempt = 0; attempt < 60; attempt++)
+            {
+                await Task.Delay(3000);
+                try
+                {
+                    using (var client = new System.Net.WebClient())
+                    {
+                        client.Headers.Add("User-Agent", "SeveralBees");
+                        string json = await client.DownloadStringTaskAsync($"https://3gv.org/link/?action=status&code={Uri.EscapeDataString(code)}");
+                        string token = SbJsonString(json, "token");
+                        if (!string.IsNullOrEmpty(token))
+                        {
+                            string valJson = await SbPost("validate_token", new Dictionary<string, string> { ["token"] = token });
+                            string username = SbJsonString(valJson ?? "", "username");
+                            if (!string.IsNullOrEmpty(username))
+                            {
+                                sbToken = token;
+                                sbUsername = username;
+                                PlayerPrefs.SetString("GggUserToken", token);
+                                sbLoginPending = false;
+                                sbLoginCode = null;
+                                SetToolTip($"<color=green>Logged in as @{username}!</color>");
+                                SbLoadBrowser(sbCurrentBrowserTab);
+                                return;
+                            }
+                        }
+                    }
+                }
+                catch { }
+            }
+            sbLoginPending = false;
+            sbLoginCode = null;
+            SetToolTip("<color=red>Login timed out. Try again.</color>");
+            if (Api.Instance.tokenListButtonInfo.ContainsKey("11") && Api.Instance.tokenListButtonInfo["11"].Count > 1)
+            {
+                Api.Instance.tokenListButtonInfo["11"][1] = new ModButtonInfo
+                {
+                    buttonText = "<color=grey>Click Me To Login</color>",
+                    toolTip = "Login with GGGravity to upvote mods.",
+                    method = () => SbStartLogin()
+                };
+            }
+        }
+
+        internal async void SbValidateStoredToken()
+        {
+            string token = PlayerPrefs.GetString("GggUserToken", null);
+            if (string.IsNullOrEmpty(token)) return;
+            sbToken = token;
+            string res = await SbPost("validate_token", new Dictionary<string, string> { ["token"] = token });
+            if (res != null && SbJsonBool(res, "valid"))
+                sbUsername = SbJsonString(res, "username");
+            else
+            {
+                sbToken = null;
+                sbUsername = null;
+            }
+        }
+
+        internal async void SbValidateInstalledMods()
+        {
+            string pluginsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "BepInEx", "plugins");
+            if (!Directory.Exists(pluginsPath)) return;
+
+            var issues = new List<string>();
+            foreach (var file in Directory.GetFiles(pluginsPath, "*.dll"))
+            {
+                try
+                {
+                    var info = new FileInfo(file);
+                    if (info.Length == 0) { issues.Add(Path.GetFileName(file) + " (empty)"); continue; }
+                    Assembly.Load(File.ReadAllBytes(file));
+                }
+                catch
+                {
+                    issues.Add(Path.GetFileName(file) + " (corrupt)");
+                }
+            }
+
+            if (issues.Count == 0) return;
+
+            string token = "sb_validation";
+            if (!Api.Instance.tokenListVisable.ContainsKey(token)) Api.Instance.tokenListVisable[token] = true;
+            if (!Api.Instance.tokenListBackToken.ContainsKey(token)) Api.Instance.tokenListBackToken[token] = "4";
+            Api.Instance.tokenList["<color=red>⚠ Mod Issues</color>"] = token;
+            Api.Instance.tokenListButtonInfo[token] = issues
+                .Select(i => new ModButtonInfo { buttonText = $"<color=red>⚠</color> {i}", toolTip = "This file may cause a crash. Consider removing it." })
+                .ToList();
+        }
+
+        internal async void SbBatchUpdateAll()
+        {
+            if (!modUpdateAvailable.Any()) { SetToolTip("<color=green>All mods are up to date.</color>"); return; }
+            SetToolTip($"<color=orange>Updating {modUpdateAvailable.Count} mods...</color>");
+
+            var toUpdate = new List<SbMod>(sbModCache.Where(m => modUpdateAvailable.Contains(m.RepoUrl)));
+            foreach (var mod in toUpdate)
+            {
+                string dlUrl = mod.RepoUrl.TrimEnd('/') + "/releases/latest/download/" + mod.DllName;
+                InstallLatestMod(dlUrl, mod.DllName.Replace(".dll", ""));
+                await Task.Delay(500);
+            }
+
+            SetToolTip("<color=green>Batch update complete. Restart to apply.</color>");
+        }
+
+        #endregion
+
+        #region Config Reset
+
+        private void AddConfigResetButton(List<ModButtonInfo> buttons, ConfigEntry entry)
+        {
+            string defVal = null;
+            try
+            {
+                foreach (var line in File.ReadAllLines(entry.FilePath))
+                {
+                    string t = line.Trim();
+                    if (t.StartsWith("# Default value:", StringComparison.OrdinalIgnoreCase))
+                    {
+                        defVal = t.Substring("# Default value:".Length).Trim();
+                        break;
+                    }
+                }
+            }
+            catch { }
+
+            if (defVal == null) return;
+
+            var e = entry;
+            string captured = defVal;
+            buttons.Add(new ModButtonInfo
+            {
+                buttonText = "<color=grey>↺ Reset Default</color>",
+                toolTip = $"Resets '{e.Key}' to: {captured}",
+                method = () =>
+                {
+                    WriteConfigValue(e.FilePath, e.Section, e.Key, captured);
+                    e.Value = captured;
+                    OpenConfigPage(Path.GetFileNameWithoutExtension(e.FilePath), e.FilePath);
+                }
+            });
         }
 
         #endregion
@@ -2186,6 +2483,20 @@ exit";
         public List<string> EnabledMods = new List<string>();
         public List<string> DisabledMods = new List<string>();
         public List<string> MissingMods = new List<string>();
+    }
+
+    internal class SbMod
+    {
+        public int Id;
+        public string Name = "";
+        public string DllName = "";
+        public string RepoUrl = "";
+        public string Description = "";
+        public string ImageUrl = "";
+        public string Author = "";
+        public int Upvotes;
+        public bool IsVerified;
+        public bool IsFeatured;
     }
 
     #endregion
