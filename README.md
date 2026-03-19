@@ -61,7 +61,7 @@ MMM is relatively easy to use, below are the download links for different operat
 
 <details>
 <summary align="center"><b>🌃 Pictures 🌃<b></summary>
-
+<h2>NOTES: These images may be outdated</h2>
 <p align="center">
 <div align="center">
  <img src="https://github.com/sevvy-wevvy/Several-Bees/blob/main/Resources/GitHub/Prev.png?raw=true" width=70% height=auto</img><br>
