@@ -43,6 +43,14 @@ MMM is relatively easy to use, below are the download links for different operat
 </details>
 
 <details>
+<summary align="center"><b>🔫 Loadouts 🔫</b></summary>
+
+<p align="center">
+Loadouts are a system that lets you make "Loadouts" of mods. You can toggle the mods youw ant for specific thing in the toggle mods tab and then save it as a loadout. This loadout will save what mod where enabled and all sorts of info. You can save up to 20 loadouts for diffrent thing such as, comp, casual, modded lobbys, testing, exc — and load themm at any time with easse so you dont have to manually toggle them each time.
+</p>
+</details>
+
+<details>
 <summary align="center"><b>⌨ Keybind ⌨</b></summary>
 
 <p align="center">
