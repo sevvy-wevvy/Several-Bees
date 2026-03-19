@@ -1,9 +1,0 @@
-https://github.com/sevvy-wevvy/Sevs-Stupid-Gorilla-Tag-Addons/releases/latest/download/SSGTA.dll
-https://github.com/sevvy-wevvy/Gorilla-Optimizer/releases/latest/download/GorillaOptimizer.dll
-https://github.com/sevvy-wevvy/Monke-Monke-Music/releases/latest/download/MonkeMonkeMusic.dll
-https://github.com/developer9998/Utilla/releases/latest/download/Utilla.dll
-https://github.com/BrokenSt0ne/Consoleless/releases/latest/download/Consoleless.dll
-https://github.com/developer9998/GorillaShirts/releases/latest/download/GorillaShirts.dll
-https://github.com/developer9998/GorillaFriends/releases/latest/download/GorillaFriends.dll
-https://github.com/developer9998/GorillaInfoWatch-Lite/releases/latest/download/GorillaInfoWatch.dll
-https://github.com/developer9998/MonkePhone/releases/latest/download/MonkePhone.dll
