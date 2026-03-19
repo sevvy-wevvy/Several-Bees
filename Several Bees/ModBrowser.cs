@@ -61,31 +61,6 @@ namespace SeveralBees
                 }
             }
 
-            if (Config.ModListLink == "https://raw.githubusercontent.com/sevvy-wevvy/Several-Bees/main/mods.txt")
-            {
-                using (HttpClient client = new HttpClient())
-                {
-                    // This API is for easly grabbing MMM mods, please view the link if you dont feel safe or unistall.
-                    var content = await client.GetStringAsync("https://sevvy-wevvy.com/mods/gorilla-tag/several-bees/mmm-grab/");
-                    var lines = content.Split(new[] { '|' }, StringSplitOptions.RemoveEmptyEntries);
-
-                    foreach (var line in lines)
-                    {
-                        var trimmed = line.Trim();
-                        if (trimmed.Length == 0) continue;
-
-                        var lastSlash = trimmed.LastIndexOf('/');
-                        if (lastSlash < 0) continue;
-
-                        var modName = trimmed.Substring(lastSlash + 1);
-                        var dllIndex = modName.IndexOf(".dll", StringComparison.OrdinalIgnoreCase);
-                        if (dllIndex > 0) modName = modName.Substring(0, dllIndex);
-
-                        if (!dict.ContainsKey(modName)) dict.Add(modName, trimmed);
-                    }
-                }
-            }
-
             callback?.Invoke(dict);
         }
 
@@ -104,5 +79,36 @@ namespace SeveralBees
             return modName;
         }
 
+        public async Task<string> GetGitHubTagAsync(string latestDownloadUrl)
+        {
+            if (string.IsNullOrEmpty(latestDownloadUrl))
+                throw new ArgumentNullException(nameof(latestDownloadUrl));
+
+            using (var handler = new HttpClientHandler { AllowAutoRedirect = false })
+            using (var client = new HttpClient(handler))
+            {
+                var request = new HttpRequestMessage(HttpMethod.Head, latestDownloadUrl);
+                var response = await client.SendAsync(request);
+
+                if (response.StatusCode == System.Net.HttpStatusCode.Found ||
+                    response.StatusCode == System.Net.HttpStatusCode.MovedPermanently)
+                {
+                    if (response.Headers.Location != null)
+                    {
+                        var redirectedUrl = response.Headers.Location.ToString();
+
+                        var segments = redirectedUrl.Split('/');
+                        int downloadIndex = Array.IndexOf(segments, "download");
+                        if (downloadIndex >= 0 && downloadIndex + 1 < segments.Length)
+                        {
+                            string tag = segments[downloadIndex + 1];
+                            return tag;
+                        }
+                    }
+                }
+
+                throw new Exception("Failed to determine tag from URL.");
+            }
+        }
     }
 }

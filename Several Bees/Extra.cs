@@ -94,9 +94,9 @@ namespace SeveralBees
 
 
         // Orignal asset loader by Skellon, slight tweaks so it works with other bundles https://github.com/skellondev
-        private Dictionary<string, List<UnityEngine.Object>> _assetDict = new Dictionary<string, List<UnityEngine.Object>>();
-        public List<string> LoadedBundles = new List<string>();
-        public bool TryGetAsset<T>(string BundleName, string name, out T obj) where T : UnityEngine.Object
+        private static Dictionary<string, List<UnityEngine.Object>> _assetDict = new Dictionary<string, List<UnityEngine.Object>>();
+        public static List<string> LoadedBundles = new List<string>();
+        public static bool TryGetAsset<T>(string BundleName, string name, out T obj) where T : UnityEngine.Object
         {
             if (LoadedBundles.Contains(BundleName) && _assetDict[BundleName].FirstOrDefault(asset => asset.name == name) is T prefab)
             {
@@ -107,7 +107,7 @@ namespace SeveralBees
             obj = null!;
             return false;
         }
-        public void AssetLoad(string BundleName)
+        public static void AssetLoad(string BundleName)
         {
             try
             {

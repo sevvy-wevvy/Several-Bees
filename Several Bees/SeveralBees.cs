@@ -26,63 +26,112 @@ using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using SeveralBees.Scripts;
-using UnityEngine.InputSystem.HID;
 using UnityEngine.Networking;
-using Photon.Voice;
-using Valve.VR.InteractionSystem;
 using System.Reflection;
 using BepInEx.Logging;
-using System.Runtime.CompilerServices;
 using Constants;
 
 namespace SeveralBees
 {
     public class SeveralBeesCore : MonoBehaviour
     {
+        #region Fields
+
         internal bool IsLatestVersion = true;
         public bool TestMode = false;
         public static SeveralBeesCore Instance { get; private set; }
 
+        internal Color Theme1 = new Color(0.5f, 0f, 1f);
+        internal Color Theme2 = Color.black;
+        internal float ThemeFadeSpeed = 0.2f;
+
+        internal int PointerPositionIndex = 0;
+        internal string SectionName = "Main";
+        internal bool LoadedPlugins = false;
+        internal bool PCControlActive = false;
+        internal bool ShowGUIMenu = false;
+        internal string ToolTipText = "";
+        internal float ToolTipKillTime = 8f;
+
+        internal string TestMod1Token = "";
+        internal string TestMod2Token = "";
+        internal string TestMod3Token = "";
+
+        internal GameObject ErrorParent = null;
+        internal AssetBundle Bundle;
+
+        private GameObject ModManegerParent = null;
+        private List<TextMeshPro> ModMangerTextList = new List<TextMeshPro>();
+        private List<GameObject> ModMangerDistanceIndicators = new List<GameObject>();
+        private int ErrorInt = 1;
+        private int MaxPointerPosition = 0;
+        private float lastSpawnTime;
+
+        private bool DownArrowPress = false;
+        private bool UpArrowPress = false;
+        private bool EnterPress = false;
+        private bool TestModeDone = false;
+        private bool SpawnNewThingPress = false;
+        private bool GuiButtonPress = false;
+        private bool PBB = PlayerPrefs.GetInt("SBPhysBackButton", 0) == 1;
+
+        private Vector3 previousLeftPos;
+        private Vector3 previousRightPos;
+        private Coroutine TooltipKillCoroutine = null;
+
+        private GUIStyle gradientStyle;
+        private Vector2 scrollPosition;
+        private Rect menuRect = new Rect(10, 50, 400, 300);
+        private bool dragging = false;
+        private Vector2 dragOffset;
+
+        private Dictionary<string, List<ConfigEntry>> configCache = new Dictionary<string, List<ConfigEntry>>();
+
+        private string currentSortMode = "Classic";
+        private List<KeyValuePair<string, string>> cachedMods = new List<KeyValuePair<string, string>>();
+        private Dictionary<string, int> modDownloadCounts = new Dictionary<string, int>();
+        private bool fetchingDownloadCounts = false;
+        private HashSet<string> modUpdateAvailable = new HashSet<string>();
+        private bool fetchingModUpdates = false;
+
+        #endregion
+
+        #region Color & Float Cycles
+
         internal List<DetailedColor> CycleColors = new List<DetailedColor>
         {
-            new DetailedColor { color = Color.red, name = "Red" }, // 0
-            new DetailedColor { color = new Color(1f, 0.5f, 0f), name = "Orange" }, // 1
-            new DetailedColor { color = Color.yellow, name = "Yellow" }, // 2
-            new DetailedColor { color = Color.green, name = "Green" }, // 3
-            new DetailedColor { color = Color.cyan, name = "Cyan" }, // 4
-            new DetailedColor { color = Color.blue, name = "Blue" }, // 5
-            new DetailedColor { color = new Color(0.5f, 0f, 1f), name = "Purple" }, // 6
-            new DetailedColor { color = Color.black, name = "Black" }, // 7
-            new DetailedColor { color = Color.white, name = "White" }, // 8
-            new DetailedColor { color = Color.magenta, name = "Magenta" }, // 9
-            new DetailedColor { color = new Color(1f, 0.75f, 0.8f), name = "Pink" }, // 10
-            new DetailedColor { color = new Color(0.6f, 0.3f, 0f), name = "Brown" }, // 11
-            new DetailedColor { color = Color.gray, name = "Gray" }, // 12
-            new DetailedColor { color = Color.green * 1.5f, name = "Lime" }, // 13
-            new DetailedColor { color = new Color(0f, 0f, 0.5f), name = "Navy" }, // 14
-            new DetailedColor { color = new Color(0.75f, 0.75f, 0.75f), name = "Silver" }, // 15
+            new DetailedColor { color = Color.red,                        name = "Red"     },
+            new DetailedColor { color = new Color(1f, 0.5f, 0f),          name = "Orange"  },
+            new DetailedColor { color = Color.yellow,                     name = "Yellow"  },
+            new DetailedColor { color = Color.green,                      name = "Green"   },
+            new DetailedColor { color = Color.cyan,                       name = "Cyan"    },
+            new DetailedColor { color = Color.blue,                       name = "Blue"    },
+            new DetailedColor { color = new Color(0.5f, 0f, 1f),          name = "Purple"  },
+            new DetailedColor { color = Color.black,                      name = "Black"   },
+            new DetailedColor { color = Color.white,                      name = "White"   },
+            new DetailedColor { color = Color.magenta,                    name = "Magenta" },
+            new DetailedColor { color = new Color(1f, 0.75f, 0.8f),       name = "Pink"    },
+            new DetailedColor { color = new Color(0.6f, 0.3f, 0f),        name = "Brown"   },
+            new DetailedColor { color = Color.gray,                       name = "Gray"    },
+            new DetailedColor { color = Color.green * 1.5f,               name = "Lime"    },
+            new DetailedColor { color = new Color(0f, 0f, 0.5f),          name = "Navy"    },
+            new DetailedColor { color = new Color(0.75f, 0.75f, 0.75f),   name = "Silver"  },
         };
-
 
         internal List<float> CycleFloats = new List<float>
         {
-            0.1f,
-            0.2f,
-            0.25f,
-            0.5f,
-            0.75f,
-            1f,
-            1.5f,
-            2f,
-            3f,
-            5f,
+            0.1f, 0.2f, 0.25f, 0.5f, 0.75f, 1f, 1.5f, 2f, 3f, 5f,
         };
+
+        #endregion
+
+        #region Lifecycle
 
         private void Awake()
         {
-            UnityEngine.Debug.Log("[Several Bees] Several Bees Object Awake");
+            UnityEngine.Debug.Log("[Several Bees] Awake");
             Instance = this;
-            UnityEngine.Debug.Log("[Several Bees] Several Bees Instance Set");
+            CheckModUpdatesAsync();
         }
 
         private async void Start()
@@ -90,363 +139,121 @@ namespace SeveralBees
             try
             {
                 if (ErrorParent == null)
-                {
                     ErrorParent = new GameObject("Several Bees || Error Parent");
-                }
             }
             catch (Exception e)
             {
-                UnityEngine.Debug.Log("[Several Bees] Error in Creating Error Parent (Start SeveralBees.SeveralBees): " + e.Message);
+                UnityEngine.Debug.Log("[Several Bees] " + e.Message);
             }
 
-            UnityEngine.Debug.Log("[Several Bees] Error Parent Created");
-
-
-
-            try
-            {
-                await Create();
-            }
-            catch (Exception e)
-            {
-                UnityEngine.Debug.Log("[Several Bees] Error in Create (Start SeveralBees.SeveralBees): " + e.Message);
-            }
-
-            UnityEngine.Debug.Log("[Several Bees] Setup Started");
+            try { await Create(); }
+            catch (Exception e) { UnityEngine.Debug.Log("[Several Bees] " + e.Message); }
 
             if (Config.IsGui) ShowGUIMenu = true;
+
+            await LoadPluginsAsync();
         }
 
-        private GameObject ModManegerParent = null;
-        private List<TextMeshPro> ModMangerTextList = new List<TextMeshPro>();
-        private List<GameObject> ModMangerDistanceIndicators = new List<GameObject>();
-        private int ErrorInt = 1;
+        #endregion
 
-        internal GameObject ErrorParent = null;
+        #region Plugin System
 
-        internal AssetBundle Bundle;
+        private async Task LoadPluginsAsync()
+        {
+            float waited = 0f;
+            while (!Plugin.Instance.PluginDirLoaded && waited < 10f)
+            {
+                await Task.Delay(100);
+                waited += 0.1f;
+            }
+
+            if (Plugin.Instance.PluginNames.Count == 0)
+            {
+                LoadedPlugins = true;
+                if (SectionName == "LoadPlugins") SectionName = "Main";
+                return;
+            }
+
+            foreach (string link in Plugin.Instance.PluginNames)
+            {
+                try
+                {
+                    string tag = await ModBrowser.Instance.GetGitHubTagAsync(link);
+                    string saved = PlayerPrefs.GetString("SBPluginVer_" + link, "");
+                    if (saved == tag) continue;
+                    InstallModAndInjectPlugin(link, "SBPlugin_" + ModBrowser.Instance.GetModName(link));
+                    PlayerPrefs.SetString("SBPluginVer_" + link, tag);
+                }
+                catch { }
+            }
+
+            LoadedPlugins = true;
+            if (SectionName == "LoadPlugins") SectionName = "Main";
+        }
+
+        internal void InstallModAndInjectPlugin(string modLink, string modName)
+        {
+            string pluginsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "BepInEx", "plugins");
+            if (!Directory.Exists(pluginsPath)) Directory.CreateDirectory(pluginsPath);
+
+            string dllPath = Path.Combine(pluginsPath, modName + ".dll");
+            if (File.Exists(dllPath)) File.Delete(dllPath);
+
+            using (var client = new System.Net.WebClient())
+            {
+                client.DownloadFileAsync(new Uri(modLink), dllPath);
+                while (client.IsBusy) Thread.Sleep(100);
+            }
+
+            TryInjectAssembly(dllPath);
+        }
+
+        private void TryInjectAssembly(string dllPath)
+        {
+            try
+            {
+                Assembly loaded = Assembly.Load(File.ReadAllBytes(dllPath));
+
+                foreach (Type type in loaded.GetTypes())
+                {
+                    if (!typeof(BaseUnityPlugin).IsAssignableFrom(type) || type.IsAbstract) continue;
+
+                    var meta = type.GetCustomAttributes(typeof(BepInPlugin), true).FirstOrDefault() as BepInPlugin;
+                    if (meta == null) continue;
+
+                    GameObject go = new GameObject(meta.GUID);
+                    UnityEngine.Object.DontDestroyOnLoad(go);
+
+                    var plugin = (BaseUnityPlugin)go.AddComponent(type);
+                    var info = new PluginInfo();
+                    typeof(PluginInfo).GetProperty("Metadata")?.SetValue(info, meta);
+                    typeof(PluginInfo).GetProperty("Instance")?.SetValue(info, plugin);
+                    typeof(BaseUnityPlugin).GetProperty("Info", BindingFlags.NonPublic | BindingFlags.Instance)?.SetValue(plugin, info);
+                }
+
+                foreach (var action in Plugin.Instance.Startup)
+                {
+                    try { action(); }
+                    catch (Exception ex) { UnityEngine.Debug.LogError("[Several Bees] Startup action: " + ex.Message); }
+                }
+                Plugin.Instance.Startup.Clear();
+            }
+            catch (Exception ex)
+            {
+                UnityEngine.Debug.LogError("[Several Bees] Inject error: " + ex.Message);
+            }
+        }
+
+        #endregion
+
+        #region Mod Manager Setup
 
         internal void ReMakeModManger()
         {
-            if (ModManegerParent != null)
-            {
-                Destroy(ModManegerParent);
-            }
+            if (ModManegerParent != null) Destroy(ModManegerParent);
             Create();
         }
 
-        internal GameObject InstanceModManger()
-        {
-            GameObject Parent = new GameObject("Several Bees || Mod Manger (Instance)");
-
-            try
-            {
-                if (Config.CompType == ComputerType.SimpleButtons || Config.CompType == ComputerType.Text)
-                {
-                    var textObj = new GameObject("SB_Text");
-                    TextMeshPro ModMangerText = textObj.AddComponent<TextMeshPro>();
-                    ModMangerText.text = "<color=orange>Loading...</color>";
-                    textObj.transform.position = Vector3.zero;
-                    textObj.transform.SetParent(Parent.transform);
-                    ModMangerText.fontSize = 0.5f;
-                    ModMangerText.alignment = TextAlignmentOptions.Center;
-                    ModMangerText.gameObject.transform.position = new Vector3(0f, 0.4f, 0f);
-                    ModMangerText.color = Color.white;
-                    ModMangerTextList.Add(ModMangerText);
-                }
-
-                if (Config.CompType == ComputerType.SimpleButtons)
-                {
-                    GameObject ModMangerButtonParent = new GameObject("Buttons");
-                    ModMangerButtonParent.transform.SetParent(Parent.transform);
-
-
-
-                    var cube1 = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                    cube1.name = "SB_Down";
-                    cube1.transform.position = new Vector3(-0.1f, 0f, 0.075f);
-                    cube1.transform.SetParent(ModMangerButtonParent.transform);
-                    cube1.transform.localScale = new Vector3(0.05f, 0.1f, 0.1f);
-                    cube1.transform.localRotation = Quaternion.Euler(0f, 90f, 90f);
-                    cube1.AddComponent<Scripts.Button>().Name = "SB_Down_Button";
-                    cube1.GetComponent<Scripts.Button>().Click += (bool Left) =>
-                    {
-                        MmDown(Left);
-                    };
-                    Extra.Instance.MakeObjectVisible(cube1);
-                    Material mat = cube1.GetComponent<Renderer>().material;
-                    mat.color = Theme2;
-
-                    var cube2 = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                    cube2.name = "SB_Up";
-                    cube2.transform.position = new Vector3(-0.1f, 0f, -0.075f);
-                    cube2.transform.SetParent(ModMangerButtonParent.transform);
-                    cube2.transform.localScale = new Vector3(0.05f, 0.1f, 0.1f);
-                    cube2.transform.localRotation = Quaternion.Euler(0f, 90f, 90f);
-                    cube2.AddComponent<Scripts.Button>().Name = "SB_Up_Button";
-                    cube2.GetComponent<Scripts.Button>().Click += (bool Left) =>
-                    {
-                        MmUp(Left);
-                    };
-                    Extra.Instance.MakeObjectVisible(cube2);
-                    mat = cube2.GetComponent<Renderer>().material;
-                    mat.color = Theme2;
-
-                    var cube3 = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                    cube3.name = "SB_Select";
-                    cube3.transform.position = new Vector3(0.125f, 0f, 0f);
-                    cube3.transform.SetParent(ModMangerButtonParent.transform);
-                    cube3.transform.localScale = new Vector3(0.05f, 0.25f, 0.25f);
-                    cube3.transform.localRotation = Quaternion.Euler(0f, 90f, 90f);
-                    cube3.AddComponent<Scripts.Button>().Name = "SB_Select_Button";
-                    cube3.GetComponent<Scripts.Button>().Click += (bool Left) =>
-                    {
-                        MmSelect(Left);
-                    };
-                    Extra.Instance.MakeObjectVisible(cube3);
-                    mat = cube3.GetComponent<Renderer>().material;
-                    mat.color = Theme2;
-
-
-
-
-                    ModMangerButtonParent.transform.rotation = Quaternion.Euler(90f, 0, 0f);
-                    ModMangerButtonParent.transform.position = new Vector3(-0.025f, 0f, 0f);
-                    foreach (Transform ajsfajk in ModMangerButtonParent.transform)
-                    {
-                        ajsfajk.AddComponent<BoxCollider>();
-                        ajsfajk.GetComponent<Collider>().isTrigger = true;
-                    }
-                }
-
-                if (Config.CompType == ComputerType.FullComputer)
-                {
-                    var textObj = new GameObject("SB_Text");
-                    TextMeshPro ModMangerText = textObj.AddComponent<TextMeshPro>();
-                    ModMangerText.text = "<color=orange>Loading...</color>";
-                    textObj.transform.position = Vector3.zero;
-                    textObj.transform.SetParent(Parent.transform);
-                    ModMangerText.fontSize = 0.5f;
-                    ModMangerText.alignment = TextAlignmentOptions.Center;
-                    ModMangerText.gameObject.transform.position = new Vector3(0f, 0.38f, -0.01f);
-                    ModMangerText.color = Color.white;
-                    textObj.GetComponent<RectTransform>().sizeDelta = new Vector2(0.4f, 0.35f);
-                    ModMangerText.enableAutoSizing = true;
-                    ModMangerText.fontSizeMax = 0.5f;
-                    ModMangerText.fontSizeMin = 0.2f;
-                    ModMangerTextList.Add(ModMangerText);
-
-                    GameObject Computer = null;
-                    GameObject computerPrefab = null;
-                    if (AssetLoader.TryGetAsset<GameObject>("Sb Computer Variant", out computerPrefab))
-                    {
-                        Computer = Instantiate(computerPrefab);
-                        Computer.transform.SetParent(Parent.transform);
-                        foreach (Transform Child in Computer.transform)
-                        {
-                            Extra.Instance.MakeObjectVisible(Child.gameObject, false);
-                            if (Child.name == "Up")
-                            {
-                                Child.AddComponent<Scripts.Button>().Name = "SB_Down_Button";
-                                Child.GetComponent<Scripts.Button>().Click += (bool Left) =>
-                                {
-                                    MmUp(Left);
-                                };
-                                Child.AddComponent<BoxCollider>().isTrigger = true;
-                            }
-                            else if (Child.name == "Down")
-                            {
-                                Child.AddComponent<Scripts.Button>().Name = "SB_Down_Button";
-                                Child.GetComponent<Scripts.Button>().Click += (bool Left) =>
-                                {
-                                    MmDown(Left);
-                                };
-                                Child.AddComponent<BoxCollider>().isTrigger = true;
-                            }
-                            else if (Child.name == "Select")
-                            {
-                                Child.AddComponent<Scripts.Button>().Name = "SB_Down_Button";
-                                Child.GetComponent<Scripts.Button>().Click += (bool Left) =>
-                                {
-                                    MmSelect(Left);
-                                };
-                                Child.AddComponent<BoxCollider>().isTrigger = true;
-                            }
-                        }
-                        Computer.transform.position = new Vector3(0.07f, 0.09f, -0.1563f);
-                        Computer.transform.rotation = Quaternion.Euler(0f, 180f, 0f);
-                        Computer.transform.localScale = new Vector3(0.15f, 0.15f, 0.15f);
-                    }
-                }
-
-                if (Config.CompType == ComputerType.FullMachine)
-                {
-                    var textObj = new GameObject("SB_Text");
-                    TextMeshPro ModMangerText = textObj.AddComponent<TextMeshPro>();
-                    ModMangerText.text = "<color=orange>Loading...</color>";
-                    textObj.transform.position = Vector3.zero;
-                    textObj.transform.SetParent(Parent.transform);
-                    ModMangerText.fontSize = 0.5f;
-                    ModMangerText.alignment = TextAlignmentOptions.Center;
-                    ModMangerText.gameObject.transform.position = new Vector3(-0.005f, 0.38f, -0.01f);
-                    ModMangerText.color = Color.white;
-                    ModMangerTextList.Add(ModMangerText);
-
-                    GameObject Machine = null;
-                    GameObject machinePrefab = null;
-                    if (AssetLoader.TryGetAsset<GameObject>("SbMachine", out machinePrefab))
-                    {
-                        Machine = Instantiate(machinePrefab);
-                        Machine.transform.SetParent(Parent.transform);
-                        foreach (Transform Child in Machine.transform)
-                        {
-                            Extra.Instance.MakeObjectVisible(Child.gameObject, false);
-                            if (Child.name == "Up")
-                            {
-                                Child.AddComponent<Scripts.Button>().Name = "SB_Down_Button";
-                                Child.GetComponent<Scripts.Button>().Click += (bool Left) =>
-                                {
-                                    MmUp(Left);
-                                };
-                                Child.AddComponent<BoxCollider>().isTrigger = true;
-                            }
-                            else if (Child.name == "Down")
-                            {
-                                Child.AddComponent<Scripts.Button>().Name = "SB_Down_Button";
-                                Child.GetComponent<Scripts.Button>().Click += (bool Left) =>
-                                {
-                                    MmDown(Left);
-                                };
-                                Child.AddComponent<BoxCollider>().isTrigger = true;
-                            }
-                            else if (Child.name == "Select")
-                            {
-                                Child.AddComponent<Scripts.Button>().Name = "SB_Down_Button";
-                                Child.GetComponent<Scripts.Button>().Click += (bool Left) =>
-                                {
-                                    MmSelect(Left);
-                                };
-                                Child.AddComponent<BoxCollider>().isTrigger = true;
-                            }
-                            else if (Child.name == "Back")
-                            {
-                                Child.AddComponent<Scripts.Button>().Name = "SB_Back_Button";
-                                Child.GetComponent<Scripts.Button>().Click += (bool Left) =>
-                                {
-                                    MmBack(Left);
-                                };
-                                Child.AddComponent<BoxCollider>().isTrigger = true;
-                                Child.gameObject.SetActive(false);
-                            }
-                            else if (Child.name == "Back1" || Child.name == "Back2")
-                            {
-                                Child.gameObject.SetActive(false);
-                            }
-                        }
-
-                        var mfbbh = new GameObject("Machine Full Back Button Handler");
-                        mfbbh.AddComponent<MachineFullBackButtonHandler>();
-                        mfbbh.transform.SetParent(Parent.transform);
-
-                        Machine.transform.position = new Vector3(0f, 0.04f, 0.02f);
-                        Machine.transform.rotation = Quaternion.Euler(0f, 270f, 0f);
-                        Machine.transform.localScale = new Vector3(0.025f, 0.025f, 0.025f);
-                    }
-                }
-            }
-            catch
-            {
-                if (true)
-                {
-                    var textObj = new GameObject("SB_Text");
-                    TextMeshPro ModMangerText = textObj.AddComponent<TextMeshPro>();
-                    ModMangerText.text = "Several Bees";
-                    textObj.transform.position = Vector3.zero;
-                    textObj.transform.SetParent(Parent.transform);
-                    ModMangerText.fontSize = 0.5f;
-                    ModMangerText.alignment = TextAlignmentOptions.Center;
-                    ModMangerText.gameObject.transform.position = new Vector3(0f, 0.4f, 0f);
-                    ModMangerText.color = Color.white;
-                    ModMangerTextList.Add(ModMangerText);
-
-                    GameObject ModMangerButtonParent = new GameObject("Buttons");
-                    ModMangerButtonParent.transform.SetParent(Parent.transform);
-
-
-
-                    var cube1 = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                    cube1.name = "SB_Down";
-                    cube1.transform.position = new Vector3(-0.1f, 0f, 0.075f);
-                    cube1.transform.SetParent(ModMangerButtonParent.transform);
-                    cube1.transform.localScale = new Vector3(0.05f, 0.1f, 0.1f);
-                    cube1.transform.localRotation = Quaternion.Euler(0f, 90f, 90f);
-                    cube1.AddComponent<Scripts.Button>().Name = "SB_Down_Button";
-                    cube1.GetComponent<Scripts.Button>().Click += (bool Left) =>
-                    {
-                        MmDown(Left);
-                    };
-                    Extra.Instance.MakeObjectVisible(cube1);
-                    Material mat = cube1.GetComponent<Renderer>().material;
-                    mat.color = Theme2;
-
-                    var cube2 = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                    cube2.name = "SB_Up";
-                    cube2.transform.position = new Vector3(-0.1f, 0f, -0.075f);
-                    cube2.transform.SetParent(ModMangerButtonParent.transform);
-                    cube2.transform.localScale = new Vector3(0.05f, 0.1f, 0.1f);
-                    cube2.transform.localRotation = Quaternion.Euler(0f, 90f, 90f);
-                    cube2.AddComponent<Scripts.Button>().Name = "SB_Up_Button";
-                    cube2.GetComponent<Scripts.Button>().Click += (bool Left) =>
-                    {
-                        MmUp(Left);
-                    };
-                    Extra.Instance.MakeObjectVisible(cube2);
-                    mat = cube2.GetComponent<Renderer>().material;
-                    mat.color = Theme2;
-
-                    var cube3 = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                    cube3.name = "SB_Select";
-                    cube3.transform.position = new Vector3(0.125f, 0f, 0f);
-                    cube3.transform.SetParent(ModMangerButtonParent.transform);
-                    cube3.transform.localScale = new Vector3(0.05f, 0.25f, 0.25f);
-                    cube3.transform.localRotation = Quaternion.Euler(0f, 90f, 90f);
-                    cube3.AddComponent<Scripts.Button>().Name = "SB_Select_Button";
-                    cube3.GetComponent<Scripts.Button>().Click += (bool Left) =>
-                    {
-                        MmSelect(Left);
-                    };
-                    Extra.Instance.MakeObjectVisible(cube3);
-                    mat = cube3.GetComponent<Renderer>().material;
-                    mat.color = Theme2;
-
-
-
-
-                    ModMangerButtonParent.transform.rotation = Quaternion.Euler(90f, 0, 0f);
-                    ModMangerButtonParent.transform.position = new Vector3(-0.025f, 0f, 0f);
-                    foreach (Transform ajsfajk in ModMangerButtonParent.transform)
-                    {
-                        ajsfajk.AddComponent<BoxCollider>();
-                        ajsfajk.GetComponent<Collider>().isTrigger = false;
-                    }
-                }
-            }
-            GameObject iLoveMen = new GameObject("Distance Indicator"); //what am i doing with these varible
-            iLoveMen.transform.SetParent(Parent.transform);
-            ModMangerDistanceIndicators.Add(iLoveMen);
-
-            return Parent;
-        }
-        internal void ListError(string Error)
-        {
-            if(ErrorParent == null)
-            {
-                ErrorParent = new GameObject("Several Bees || Error Parent");
-            }
-
-            GameObject gameObject = new GameObject("Several Bees |" + ErrorInt + "| " + Error);
-            gameObject.GetComponentInParent<Transform>().SetParent(ErrorParent.transform);
-        }
         internal async Task Create()
         {
             try
@@ -455,14 +262,15 @@ namespace SeveralBees
                 {
                     if (!Api.Instance.HasMadeSettings)
                     {
-                        SeveralBeesCore.Instance.MakeSettings();
+                        MakeSettings();
                         Api.Instance.HasMadeSettings = true;
                     }
-                } catch { }
+                }
+                catch { }
 
-                GameObject imAGayTwinkFurryFemboy = InstanceModManger();
-                imAGayTwinkFurryFemboy.name = "Several Bees || Mod Manger";
-                ModManegerParent = imAGayTwinkFurryFemboy;
+                var mm = InstanceModManger();
+                mm.name = "Several Bees || Mod Manger";
+                ModManegerParent = mm;
 
                 ModManegerParent.transform.position = Config.MachineSpawnPoint;
                 ModManegerParent.transform.rotation = Quaternion.Euler(Config.MachineSpawnRoto);
@@ -471,131 +279,294 @@ namespace SeveralBees
                 if (Config.CompType == ComputerType.None)
                 {
                     ModManegerParent.transform.position = new Vector3(0f, -int.MaxValue, 0f);
-                    ModManegerParent.transform.rotation = Quaternion.Euler(0f, 0f, 0f);
-                    ModManegerParent.transform.localScale = new Vector3(0f, 0f, 0f);
+                    ModManegerParent.transform.rotation = Quaternion.identity;
+                    ModManegerParent.transform.localScale = Vector3.zero;
                     ModManegerParent.name = "Several Bees || Mod Manger (Killed)";
                 }
-
-                UnityEngine.Debug.Log("[Several Bees] Mod Manger Set Up Complete");
             }
             catch (Exception e)
             {
-                ListError("Error in Creating Mod Manger: " + e.Message + $" [{e.StackTrace}]");
+                ListError("Create error: " + e.Message + $" [{e.StackTrace}]");
             }
         }
 
-        internal void MmDown(bool Left)
+        internal GameObject InstanceModManger()
         {
-            PlaySound("https://github.com/sevvy-wevvy/Several-Bees/raw/refs/heads/main/Resources/Mod/click1.wav");
-            PointerPositionIndex++;
-            if(PointerPositionIndex >= MaxPointerPosition)
+            var parent = new GameObject("Several Bees || Mod Manger (Instance)");
+
+            try
             {
-                PointerPositionIndex = 0;
+                if (Config.CompType == ComputerType.SimpleButtons || Config.CompType == ComputerType.Text)
+                    AddDisplayText(parent, new Vector3(0f, 0.4f, 0f));
+
+                if (Config.CompType == ComputerType.SimpleButtons)
+                    BuildSimpleButtons(parent);
+
+                if (Config.CompType == ComputerType.FullComputer)
+                    BuildFullComputer(parent);
+
+                if (Config.CompType == ComputerType.FullMachine)
+                    BuildFullMachine(parent);
+            }
+            catch
+            {
+                BuildFallback(parent);
+            }
+
+            var indicator = new GameObject("Distance Indicator");
+            indicator.transform.SetParent(parent.transform);
+            ModMangerDistanceIndicators.Add(indicator);
+
+            return parent;
+        }
+
+        private TextMeshPro AddDisplayText(GameObject parent, Vector3 localPos, Vector2? rectSize = null)
+        {
+            var obj = new GameObject("SB_Text");
+            var tmp = obj.AddComponent<TextMeshPro>();
+            tmp.text = "<color=orange>Loading...</color>";
+            tmp.fontSize = 0.5f;
+            tmp.alignment = TextAlignmentOptions.Center;
+            tmp.color = Color.white;
+            obj.transform.SetParent(parent.transform);
+            obj.transform.position = localPos;
+            if (rectSize.HasValue) obj.GetComponent<RectTransform>().sizeDelta = rectSize.Value;
+            ModMangerTextList.Add(tmp);
+            return tmp;
+        }
+
+        private void BuildSimpleButtons(GameObject parent)
+        {
+            var btnParent = new GameObject("Buttons");
+            btnParent.transform.SetParent(parent.transform);
+
+            SpawnNavCube(btnParent, "SB_Down", new Vector3(-0.1f, 0f, 0.075f), l => MmDown(l));
+            SpawnNavCube(btnParent, "SB_Up", new Vector3(-0.1f, 0f, -0.075f), l => MmUp(l));
+
+            var sel = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            sel.name = "SB_Select";
+            sel.transform.position = new Vector3(0.125f, 0f, 0f);
+            sel.transform.SetParent(btnParent.transform);
+            sel.transform.localScale = new Vector3(0.05f, 0.25f, 0.25f);
+            sel.transform.localRotation = Quaternion.Euler(0f, 90f, 90f);
+            sel.AddComponent<Scripts.Button>().Name = "SB_Select_Button";
+            sel.GetComponent<Scripts.Button>().Click += l => MmSelect(l);
+            Extra.Instance.MakeObjectVisible(sel);
+            sel.GetComponent<Renderer>().material.color = Theme2;
+
+            btnParent.transform.rotation = Quaternion.Euler(90f, 0, 0f);
+            btnParent.transform.position = new Vector3(-0.025f, 0f, 0f);
+
+            foreach (Transform t in btnParent.transform)
+            {
+                var col = t.gameObject.AddComponent<BoxCollider>();
+                col.isTrigger = true;
             }
         }
-        internal void MmUp(bool Left)
+
+        private void SpawnNavCube(GameObject parent, string name, Vector3 pos, Action<bool> onClick)
         {
-            PlaySound("https://github.com/sevvy-wevvy/Several-Bees/raw/refs/heads/main/Resources/Mod/click1.wav");
-            PointerPositionIndex--;
-            if (PointerPositionIndex < 0)
+            var cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            cube.name = name;
+            cube.transform.position = pos;
+            cube.transform.SetParent(parent.transform);
+            cube.transform.localScale = new Vector3(0.05f, 0.1f, 0.1f);
+            cube.transform.localRotation = Quaternion.Euler(0f, 90f, 90f);
+            cube.AddComponent<Scripts.Button>().Name = name + "_Button";
+            cube.GetComponent<Scripts.Button>().Click += onClick;
+            Extra.Instance.MakeObjectVisible(cube);
+            cube.GetComponent<Renderer>().material.color = Theme2;
+        }
+
+        private void BuildFullComputer(GameObject parent)
+        {
+            var tmp = AddDisplayText(parent, new Vector3(0f, 0.38f, -0.01f), new Vector2(0.4f, 0.35f));
+            tmp.enableAutoSizing = true;
+            tmp.fontSizeMax = 0.5f;
+            tmp.fontSizeMin = 0.2f;
+
+            if (!AssetLoader.TryGetAsset<GameObject>("Sb Computer Variant", out var prefab)) return;
+
+            var computer = Instantiate(prefab);
+            computer.transform.SetParent(parent.transform);
+            BindMachineButtons(computer, hasBack: false);
+            computer.transform.position = new Vector3(0.07f, 0.09f, -0.1563f);
+            computer.transform.rotation = Quaternion.Euler(0f, 180f, 0f);
+            computer.transform.localScale = new Vector3(0.15f, 0.15f, 0.15f);
+        }
+
+        private void BuildFullMachine(GameObject parent)
+        {
+            AddDisplayText(parent, new Vector3(-0.005f, 0.38f, -0.01f));
+
+            if (!AssetLoader.TryGetAsset<GameObject>("SbMachine", out var prefab)) return;
+
+            var machine = Instantiate(prefab);
+            machine.transform.SetParent(parent.transform);
+            BindMachineButtons(machine, hasBack: true);
+
+            var mfbbh = new GameObject("Machine Full Back Button Handler");
+            mfbbh.AddComponent<MachineFullBackButtonHandler>();
+            mfbbh.transform.SetParent(parent.transform);
+
+            machine.transform.position = new Vector3(0f, 0.04f, 0.02f);
+            machine.transform.rotation = Quaternion.Euler(0f, 270f, 0f);
+            machine.transform.localScale = new Vector3(0.025f, 0.025f, 0.025f);
+        }
+
+        private void BuildFallback(GameObject parent)
+        {
+            var obj = new GameObject("SB_Text");
+            var tmp = obj.AddComponent<TextMeshPro>();
+            tmp.text = "Several Bees";
+            tmp.fontSize = 0.5f;
+            tmp.alignment = TextAlignmentOptions.Center;
+            tmp.color = Color.white;
+            obj.transform.SetParent(parent.transform);
+            obj.transform.position = new Vector3(0f, 0.4f, 0f);
+            ModMangerTextList.Add(tmp);
+
+            var btnParent = new GameObject("Buttons");
+            btnParent.transform.SetParent(parent.transform);
+
+            SpawnNavCube(btnParent, "SB_Down", new Vector3(-0.1f, 0f, 0.075f), l => MmDown(l));
+            SpawnNavCube(btnParent, "SB_Up", new Vector3(-0.1f, 0f, -0.075f), l => MmUp(l));
+
+            var sel = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            sel.name = "SB_Select";
+            sel.transform.position = new Vector3(0.125f, 0f, 0f);
+            sel.transform.SetParent(btnParent.transform);
+            sel.transform.localScale = new Vector3(0.05f, 0.25f, 0.25f);
+            sel.transform.localRotation = Quaternion.Euler(0f, 90f, 90f);
+            sel.AddComponent<Scripts.Button>().Name = "SB_Select_Button";
+            sel.GetComponent<Scripts.Button>().Click += l => MmSelect(l);
+            Extra.Instance.MakeObjectVisible(sel);
+            sel.GetComponent<Renderer>().material.color = Theme2;
+
+            btnParent.transform.rotation = Quaternion.Euler(90f, 0, 0f);
+            btnParent.transform.position = new Vector3(-0.025f, 0f, 0f);
+
+            foreach (Transform t in btnParent.transform)
             {
-                PointerPositionIndex = MaxPointerPosition - 1;
+                t.gameObject.AddComponent<BoxCollider>().isTrigger = false;
             }
         }
-        internal void MmSelect(bool Left)
+
+        private void BindMachineButtons(GameObject root, bool hasBack)
         {
-            PlaySound("https://github.com/sevvy-wevvy/Several-Bees/raw/refs/heads/main/Resources/Mod/click1.wav");
-            List<Things> things = GetThings();
-
-            bool Enterable = things[PointerPositionIndex].Enterable;
-            string Name = things[PointerPositionIndex].Name;
-            string Token = things[PointerPositionIndex].Token;
-            ModButtonInfo mbi = things[PointerPositionIndex].mbi;
-
-            if (Enterable)
+            foreach (Transform child in root.transform)
             {
-                SectionName = Token;
-                PointerPositionIndex = 0;
-                if (Name == "Back")
+                Extra.Instance.MakeObjectVisible(child.gameObject, false);
+                switch (child.name)
                 {
-                    SetToolTip($"<color=grey>[</color>Back<color=grey>]</color> Takes you back to the last tab.");
-                    return;
+                    case "Up":
+                        child.AddComponent<Scripts.Button>().Click += l => MmUp(l);
+                        child.AddComponent<BoxCollider>().isTrigger = true;
+                        break;
+                    case "Down":
+                        child.AddComponent<Scripts.Button>().Click += l => MmDown(l);
+                        child.AddComponent<BoxCollider>().isTrigger = true;
+                        break;
+                    case "Select":
+                        child.AddComponent<Scripts.Button>().Click += l => MmSelect(l);
+                        child.AddComponent<BoxCollider>().isTrigger = true;
+                        break;
+                    case "Back" when hasBack:
+                        child.AddComponent<Scripts.Button>().Click += l => MmBack(l);
+                        child.AddComponent<BoxCollider>().isTrigger = true;
+                        child.gameObject.SetActive(false);
+                        break;
+                    case "Back1":
+                    case "Back2":
+                        child.gameObject.SetActive(false);
+                        break;
                 }
-                SetToolTip($"<color=grey>[</color>{Name}<color=grey>]</color> Takes you to the '{Name}' tab.");
+            }
+        }
+
+        #endregion
+
+        #region Navigation
+
+        internal void MmDown(bool left)
+        {
+            PlaySound("https://github.com/sevvy-wevvy/Several-Bees/raw/refs/heads/main/Resources/Mod/click1.wav");
+            if (MaxPointerPosition == 0) return;
+            PointerPositionIndex = (PointerPositionIndex + 1) % MaxPointerPosition;
+        }
+
+        internal void MmUp(bool left)
+        {
+            PlaySound("https://github.com/sevvy-wevvy/Several-Bees/raw/refs/heads/main/Resources/Mod/click1.wav");
+            if (MaxPointerPosition == 0) return;
+            PointerPositionIndex = (PointerPositionIndex - 1 + MaxPointerPosition) % MaxPointerPosition;
+        }
+
+        internal void MmSelect(bool left)
+        {
+            PlaySound("https://github.com/sevvy-wevvy/Several-Bees/raw/refs/heads/main/Resources/Mod/click1.wav");
+            var things = GetThings();
+            if (things.Count == 0 || PointerPositionIndex >= things.Count) return;
+
+            var thing = things[PointerPositionIndex];
+
+            if (thing.Enterable)
+            {
+                SectionName = thing.Token;
+                PointerPositionIndex = 0;
+                SetToolTip(thing.Name == "Back"
+                    ? "<color=grey>[</color>Back<color=grey>]</color> Takes you back to the last tab."
+                    : $"<color=grey>[</color>{thing.Name}<color=grey>]</color> Takes you to the '{thing.Name}' tab.");
+                return;
+            }
+
+            var mbi = thing.mbi;
+            if (mbi == null) return;
+
+            if (mbi.isTogglable)
+            {
+                mbi.enabled = !mbi.enabled;
+                (mbi.enabled ? mbi.enableMethod : mbi.disableMethod)?.Invoke();
             }
             else
             {
-                if (mbi != null)
-                {
-                    bool istgl = mbi.isTogglable;
-                    if (istgl)
-                    {
-                        mbi.enabled = !mbi.enabled;
+                mbi.method?.Invoke();
+            }
 
-                        (mbi.enabled ? mbi.enableMethod : mbi.disableMethod)?.Invoke();
-                    } else
-                    {
-                        mbi.method?.Invoke();
-                    }
+            if (mbi.toolTip == null) return;
 
-                    if (mbi.toolTip != null)
-                    {
-                        if(mbi.isTogglable)
-                        {
-                            if(mbi.enabled)
-                            {
-                                SetToolTip($"<color=grey>[</color><color=green>{(mbi.buttonOverlayText == null ? mbi.buttonText : mbi.buttonOverlayText)}</color><color=grey>]</color> {mbi.toolTip}");
-                            }
-                            else
-                            {
-                                SetToolTip($"<color=grey>[</color><color=red>{(mbi.buttonOverlayText == null ? mbi.buttonText : mbi.buttonOverlayText)}</color><color=grey>]</color> {mbi.toolTip}");
-                            }
-                        }
-                        else
-                        {
-                            SetToolTip($"<color=grey>[</color>{(mbi.buttonOverlayText == null ? mbi.buttonText : mbi.buttonOverlayText)}<color=grey>]</color> {mbi.toolTip}");
-                        }
-                    }
-                }
-                else
-                {
-                }
+            string label = mbi.buttonOverlayText ?? mbi.buttonText;
+            if (mbi.isTogglable)
+            {
+                string col = mbi.enabled ? "green" : "red";
+                SetToolTip($"<color=grey>[</color><color={col}>{label}</color><color=grey>]</color> {mbi.toolTip}");
+            }
+            else
+            {
+                SetToolTip($"<color=grey>[</color>{label}<color=grey>]</color> {mbi.toolTip}");
             }
         }
-        internal void MmBack(bool Left)
+
+        internal void MmBack(bool left)
         {
             PlaySound("https://github.com/sevvy-wevvy/Several-Bees/raw/refs/heads/main/Resources/Mod/click1.wav");
-            if(SectionName == "Main")
+            if (SectionName == "Main")
             {
                 SetToolTip($"<color=grey>[</color>{Extra.GradientText("Several Bees", Theme1, Theme2, ThemeFadeSpeed)}<color=grey>]</color> You are already at the main menu.");
                 return;
             }
-            string backTarget = "Main";
-            try
-            {
-                backTarget = Api.Instance.tokenListBackToken[SectionName];
-            }
-            catch (Exception e)
-            {
-                ListError("Error in Getting Back Target Token: " + e.Message + $" [{e.StackTrace}]");
-            }
-            Api.Instance.OpenMenu(backTarget);
+            string back = "Main";
+            try { back = Api.Instance.tokenListBackToken[SectionName]; }
+            catch (Exception e) { ListError("Back token error: " + e.Message); }
+            Api.Instance.OpenMenu(back);
         }
 
-        internal string ToolTipText = "";
-
-        internal void SetToolTip(string Text)
+        internal void SetToolTip(string text)
         {
-            if(TooltipKillCoroutine != null)
-            {
-                StopCoroutine(TooltipKillCoroutine);
-                TooltipKillCoroutine = null;
-            }
-            ToolTipText = Text;
+            if (TooltipKillCoroutine != null) { StopCoroutine(TooltipKillCoroutine); TooltipKillCoroutine = null; }
+            ToolTipText = text;
             TooltipKillCoroutine = StartCoroutine(TooltipKill());
         }
-
-        Coroutine TooltipKillCoroutine = null;
 
         private IEnumerator TooltipKill()
         {
@@ -603,7 +574,52 @@ namespace SeveralBees
             ToolTipText = "";
         }
 
-        internal float ToolTipKillTime = 8f;
+        internal List<Things> GetThings()
+        {
+            var things = new List<Things>();
+
+            if (SectionName == "Main")
+            {
+                foreach (var kv in Api.Instance.tokenList)
+                    if (Api.Instance.tokenListVisable[kv.Value])
+                        things.Add(new Things { Name = kv.Key, Enterable = true, Token = kv.Value });
+                return things;
+            }
+
+            if (SectionName == "NotNew" || SectionName == "LoadPlugins")
+            {
+                foreach (var mbi in Api.Instance.tokenListButtonInfo[SectionName])
+                    things.Add(new Things { Name = FormatButtonName(mbi), Enterable = false, Token = SectionName, mbi = mbi });
+                return things;
+            }
+
+            string backTarget = "Main";
+            try { backTarget = Api.Instance.tokenListBackToken[SectionName]; }
+            catch (Exception e) { ListError("Back token error: " + e.Message); }
+
+            if (!Api.Instance.GrabButton("8", "Physical Back Button").enabled)
+                things.Add(new Things { Name = "<color=red>Back</color>", Enterable = true, Token = backTarget });
+
+            foreach (var mbi in Api.Instance.tokenListButtonInfo[SectionName])
+                things.Add(new Things { Name = FormatButtonName(mbi), Enterable = false, Token = SectionName, mbi = mbi });
+
+            return things;
+        }
+
+        private string FormatButtonName(ModButtonInfo mbi)
+        {
+            if (!mbi.isTogglable) return mbi.buttonText;
+            return mbi.enabled
+                ? $"<color=green>{mbi.buttonText} [ON]</color>"
+                : $"<color=red>{mbi.buttonText} [OFF]</color>";
+        }
+
+        internal List<string> GetButtons() => GetThings().Select(t => t.Name).ToList();
+
+        #endregion
+
+        #region Settings Menus
+
         internal void MakeSettings()
         {
             try
@@ -613,10 +629,10 @@ namespace SeveralBees
                 Api.Instance.tokenListBackToken.Add("1", "Main");
                 Api.Instance.tokenListButtonInfo["1"] = new List<ModButtonInfo>
                 {
-                    new ModButtonInfo { buttonText = "General Settings", isTogglable = false, method = () => Api.Instance.OpenMenu("8"), toolTip = "Opens the general settings." },
-                    new ModButtonInfo { buttonText = "Theme Settings", isTogglable = false, method = () => Api.Instance.OpenMenu("2"), toolTip = "Opens the theme settings." },
-                    new ModButtonInfo { buttonText = "<color=yellow>Credits</color>", isTogglable = false, method = () => Api.Instance.OpenMenu("7"), toolTip = "Opens the credits." },
-                    new ModButtonInfo { buttonText = "<color=green>Donate</color>", isTogglable = false, method = () => System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo{ FileName = "https://sevvy-wevvy.com/donate/", UseShellExecute = true }), toolTip = "Lets you donate to me." },
+                    new ModButtonInfo { buttonText = "General Settings", method = () => Api.Instance.OpenMenu("8"), toolTip = "Opens the general settings." },
+                    new ModButtonInfo { buttonText = "Theme Settings",   method = () => Api.Instance.OpenMenu("2"), toolTip = "Opens the theme settings." },
+                    new ModButtonInfo { buttonText = "<color=yellow>Credits</color>", method = () => Api.Instance.OpenMenu("7"), toolTip = "Opens the credits." },
+                    new ModButtonInfo { buttonText = "<color=green>Donate</color>",   method = () => Process.Start(new ProcessStartInfo { FileName = "https://sevvy-wevvy.com/donate/", UseShellExecute = true }), toolTip = "Lets you donate to me." },
                 };
 
                 Api.Instance.tokenList.Add("Theme", "2");
@@ -624,10 +640,10 @@ namespace SeveralBees
                 Api.Instance.tokenListBackToken.Add("2", "1");
                 Api.Instance.tokenListButtonInfo["2"] = new List<ModButtonInfo>
                 {
-                    new ModButtonInfo { buttonText = "Theme Presets", isTogglable = false, method = () => Api.Instance.OpenMenu("3"), toolTip = "Opens the theme presets menu." },
-                    new ModButtonInfo { buttonText = "cfs", isTogglable = false, method = () => Settings.cfs(), toolTip = "Adjusts the speed of the menu color fading." },
-                    new ModButtonInfo { buttonText = "nfc", isTogglable = false, method = () => Settings.nfc(), toolTip = "Changes the menu title first fade color." },
-                    new ModButtonInfo { buttonText = "nsc", isTogglable = false, method = () => Settings.nsc(), toolTip = "Changes the menu title second fade color." },
+                    new ModButtonInfo { buttonText = "Theme Presets", method = () => Api.Instance.OpenMenu("3"), toolTip = "Opens the theme presets." },
+                    new ModButtonInfo { buttonText = "cfs", method = () => Settings.cfs(), toolTip = "Adjusts the fade speed." },
+                    new ModButtonInfo { buttonText = "nfc", method = () => Settings.nfc(), toolTip = "Changes the first fade color." },
+                    new ModButtonInfo { buttonText = "nsc", method = () => Settings.nsc(), toolTip = "Changes the second fade color." },
                 };
 
                 Api.Instance.tokenList.Add("Theme Presets", "3");
@@ -635,29 +651,29 @@ namespace SeveralBees
                 Api.Instance.tokenListBackToken.Add("3", "2");
                 Api.Instance.tokenListButtonInfo["3"] = new List<ModButtonInfo>
                 {
-                    new ModButtonInfo { buttonText = "Defualt", buttonOverlayText = "<color=#8A2BE2>D</color><color=#9B30FF>e</color><color=#A64AC9>f</color><color=#B266FF>u</color><color=#C080FF>a</color><color=#D19EFF>l</color><color=#E0BFFF>t</color>", isTogglable = false, method = () => Extra.Instance.SetTheme(CycleColors[6].color, CycleColors[7].color, 0.2f), toolTip = "Purple and black." },
-                    new ModButtonInfo { buttonText = "Breeze", buttonOverlayText = "<color=#00FFFF>B</color><color=#1CEEEE>r</color><color=#3AFFFF>e</color><color=#5AFFEE>e</color><color=#7AFFFF>z</color><color=#9CFFFF>e</color>", isTogglable = false, method = () => Extra.Instance.SetTheme(CycleColors[4].color, CycleColors[9].color, 0.2f), toolTip = "Cyan and magenta." },
-                    new ModButtonInfo { buttonText = "Rose", buttonOverlayText = "<color=#FFBFCF>R</color><color=#FF9FBF>o</color><color=#FF7FBF>s</color><color=#FF5FAF>e</color>", isTogglable = false, method = () => Extra.Instance.SetTheme(CycleColors[10].color, CycleColors[8].color, 0.2f), toolTip = "Soft pink with white." },
-                    new ModButtonInfo { buttonText = "Earth", buttonOverlayText = "<color=#964B00>E</color><color=#A65A0F>a</color><color=#B66B1F>r</color><color=#C57C2F>t</color><color=#D58D3F>h</color>", isTogglable = false, method = () => Extra.Instance.SetTheme(CycleColors[11].color, CycleColors[3].color, 0.2f), toolTip = "Brown and green." },
-                    new ModButtonInfo { buttonText = "Storm", buttonOverlayText = "<color=#808080>S</color><color=#909090>t</color><color=#A0A0A0>o</color><color=#B0B0B0>r</color><color=#C0C0C0>m</color>", isTogglable = false, method = () => Extra.Instance.SetTheme(CycleColors[12].color, CycleColors[7].color, 0.2f), toolTip = "Gray with black." },
-                    new ModButtonInfo { buttonText = "Ocean", buttonOverlayText = "<color=#00BFFF>O</color><color=#1ECFFF>c</color><color=#3ADFFF>e</color><color=#56EFFF>a</color><color=#72FFFF>n</color>", isTogglable = false, method = () => Extra.Instance.SetTheme(CycleColors[5].color, CycleColors[4].color, 0.2f), toolTip = "Blue and cyan." },
-                    new ModButtonInfo { buttonText = "Neon", buttonOverlayText = "<color=#7FFF00>N</color><color=#8CFF19>e</color><color=#9AFF33>o</color><color=#A7FF4D>n</color>", isTogglable = false, method = () => Extra.Instance.SetTheme(CycleColors[13].color, CycleColors[4].color, 0.2f), toolTip = "Lime and cyan." },
-                    new ModButtonInfo { buttonText = "Toxic", buttonOverlayText = "<color=#7FFF00>T</color><color=#8CFF19>o</color><color=#9AFF33>x</color><color=#A7FF4D>i</color><color=#B5FF66>c</color>", isTogglable = false, method = () => Extra.Instance.SetTheme(CycleColors[13].color, CycleColors[11].color, 0.2f), toolTip = "Lime and brown." },
-                    new ModButtonInfo { buttonText = "Royal", buttonOverlayText = "<color=#8A2BE2>R</color><color=#9B30FF>o</color><color=#A64AC9>y</color><color=#B266FF>a</color><color=#C080FF>l</color>", isTogglable = false, method = () => Extra.Instance.SetTheme(CycleColors[6].color, CycleColors[14].color, 0.2f), toolTip = "Purple and navy." },
-                    new ModButtonInfo { buttonText = "Flare", buttonOverlayText = "<color=#FF0000>F</color><color=#FF1A1A>l</color><color=#FF3333>a</color><color=#FF4D4D>r</color><color=#FF6666>e</color>", isTogglable = false, method = () => Extra.Instance.SetTheme(CycleColors[0].color, CycleColors[1].color, 0.2f), toolTip = "Red and orange." },
-                    new ModButtonInfo { buttonText = "Sunset", buttonOverlayText = "<color=#FFA500>S</color><color=#FFB733>u</color><color=#FFC966>n</color><color=#FFD999>s</color><color=#FFECCC>e</color><color=#FFF0FF>t</color>", isTogglable = false, method = () => Extra.Instance.SetTheme(CycleColors[1].color, CycleColors[8].color, 0.2f), toolTip = "Orange and white." },
-                    new ModButtonInfo { buttonText = "Solar", buttonOverlayText = "<color=#FFFF00>S</color><color=#FFFF33>o</color><color=#FFFF66>l</color><color=#FFFF99>a</color><color=#FFFFCC>r</color>", isTogglable = false, method = () => Extra.Instance.SetTheme(CycleColors[2].color, CycleColors[1].color, 0.2f), toolTip = "Yellow and orange." },
-                    new ModButtonInfo { buttonText = "Frost", buttonOverlayText = "<color=#00FFFF>F</color><color=#33FFFF>r</color><color=#66FFFF>o</color><color=#99FFFF>s</color><color=#CCFFFF>t</color>", isTogglable = false, method = () => Extra.Instance.SetTheme(CycleColors[4].color, CycleColors[15].color, 0.2f), toolTip = "Cyan and silver." },
-                    new ModButtonInfo { buttonText = "Steel", buttonOverlayText = "<color=#C0C0C0>S</color><color=#D0D0D0>t</color><color=#E0E0E0>e</color><color=#F0F0F0>e</color><color=#FFFFFF>l</color>", isTogglable = false, method = () => Extra.Instance.SetTheme(CycleColors[15].color, CycleColors[12].color, 0.2f), toolTip = "Silver and gray." },
-                    new ModButtonInfo { buttonText = "Shadow", buttonOverlayText = "<color=#000000>S</color><color=#111111>h</color><color=#222222>a</color><color=#333333>d</color><color=#444444>o</color><color=#555555>w</color>", isTogglable = false, method = () => Extra.Instance.SetTheme(CycleColors[7].color, CycleColors[12].color, 0.2f), toolTip = "Black and gray." },
-                    new ModButtonInfo { buttonText = "Inferno", buttonOverlayText = "<color=#FF0000>I</color><color=#FF3300>n</color><color=#FF6600>f</color><color=#FF9900>e</color><color=#FFCC00>r</color><color=#FFFF00>n</color><color=#FFFF33>o</color>", isTogglable = false, method = () => Extra.Instance.SetTheme(CycleColors[0].color, CycleColors[2].color, 0.2f), toolTip = "Red and yellow." },
-                    new ModButtonInfo { buttonText = "Berry", buttonOverlayText = "<color=#FF00FF>B</color><color=#FF33FF>e</color><color=#FF66FF>r</color><color=#FF99FF>r</color><color=#FFCCFF>y</color>", isTogglable = false, method = () => Extra.Instance.SetTheme(CycleColors[9].color, CycleColors[10].color, 0.2f), toolTip = "Magenta and pink." },
-                    new ModButtonInfo { buttonText = "Midnight", buttonOverlayText = "<color=#000000>M</color><color=#000033>i</color><color=#000066>d</color><color=#000099>n</color><color=#0000CC>i</color><color=#0000FF>g</color><color=#3333FF>h</color><color=#6666FF>t</color>", isTogglable = false, method = () => Extra.Instance.SetTheme(CycleColors[7].color, CycleColors[5].color, 0.2f), toolTip = "Black and blue." },
-                    new ModButtonInfo { buttonText = "Lava", buttonOverlayText = "<color=#FF0000>L</color><color=#FF3300>a</color><color=#FF6600>v</color><color=#FF9900>a</color>", isTogglable = false, method = () => Extra.Instance.SetTheme(CycleColors[0].color, CycleColors[12].color, 0.2f), toolTip = "Red and gray." },
-                    new ModButtonInfo { buttonText = "Mint", buttonOverlayText = "<color=#00FF7F>M</color><color=#33FF99>i</color><color=#66FFBB>n</color><color=#99FFDD>t</color>", isTogglable = false, method = () => Extra.Instance.SetTheme(CycleColors[3].color, CycleColors[13].color, 0.2f), toolTip = "Green and lime." },
-                    new ModButtonInfo { buttonText = "Peach", buttonOverlayText = "<color=#FFA07A>P</color><color=#FFB080>e</color><color=#FFC099>a</color><color=#FFD0B3>c</color><color=#FFE0CC>h</color>", isTogglable = false, method = () => Extra.Instance.SetTheme(CycleColors[1].color, CycleColors[10].color, 0.2f), toolTip = "Orange and pink." },
-                    new ModButtonInfo { buttonText = "Twilight", buttonOverlayText = "<color=#8A2BE2>T</color><color=#9B30FF>w</color><color=#A64AC9>i</color><color=#B266FF>l</color><color=#C080FF>i</color><color=#D19EFF>g</color><color=#E0BFFF>h</color><color=#F0DFFF>t</color>", isTogglable = false, method = () => Extra.Instance.SetTheme(CycleColors[6].color, CycleColors[4].color, 0.2f), toolTip = "Purple and cyan." },
-                    new ModButtonInfo { buttonText = "Cobalt", buttonOverlayText = "<color=#0000FF>C</color><color=#3333FF>o</color><color=#6666FF>b</color><color=#9999FF>a</color><color=#CCCCFF>l</color><color=#FFFFFF>t</color>", isTogglable = false, method = () => Extra.Instance.SetTheme(CycleColors[5].color, CycleColors[14].color, 0.2f), toolTip = "Blue and navy." },
+                    new ModButtonInfo { buttonText = "Defualt",   buttonOverlayText = "<color=#8A2BE2>D</color><color=#9B30FF>e</color><color=#A64AC9>f</color><color=#B266FF>u</color><color=#C080FF>a</color><color=#D19EFF>l</color><color=#E0BFFF>t</color>",                                                                                         method = () => Extra.Instance.SetTheme(CycleColors[6].color,  CycleColors[7].color,  0.2f), toolTip = "Purple and black."    },
+                    new ModButtonInfo { buttonText = "Breeze",    buttonOverlayText = "<color=#00FFFF>B</color><color=#1CEEEE>r</color><color=#3AFFFF>e</color><color=#5AFFEE>e</color><color=#7AFFFF>z</color><color=#9CFFFF>e</color>",                                                                                                             method = () => Extra.Instance.SetTheme(CycleColors[4].color,  CycleColors[9].color,  0.2f), toolTip = "Cyan and magenta."    },
+                    new ModButtonInfo { buttonText = "Rose",      buttonOverlayText = "<color=#FFBFCF>R</color><color=#FF9FBF>o</color><color=#FF7FBF>s</color><color=#FF5FAF>e</color>",                                                                                                                                                             method = () => Extra.Instance.SetTheme(CycleColors[10].color, CycleColors[8].color,  0.2f), toolTip = "Pink and white."      },
+                    new ModButtonInfo { buttonText = "Earth",     buttonOverlayText = "<color=#964B00>E</color><color=#A65A0F>a</color><color=#B66B1F>r</color><color=#C57C2F>t</color><color=#D58D3F>h</color>",                                                                                                                                     method = () => Extra.Instance.SetTheme(CycleColors[11].color, CycleColors[3].color,  0.2f), toolTip = "Brown and green."     },
+                    new ModButtonInfo { buttonText = "Storm",     buttonOverlayText = "<color=#808080>S</color><color=#909090>t</color><color=#A0A0A0>o</color><color=#B0B0B0>r</color><color=#C0C0C0>m</color>",                                                                                                                                     method = () => Extra.Instance.SetTheme(CycleColors[12].color, CycleColors[7].color,  0.2f), toolTip = "Gray and black."      },
+                    new ModButtonInfo { buttonText = "Ocean",     buttonOverlayText = "<color=#00BFFF>O</color><color=#1ECFFF>c</color><color=#3ADFFF>e</color><color=#56EFFF>a</color><color=#72FFFF>n</color>",                                                                                                                                     method = () => Extra.Instance.SetTheme(CycleColors[5].color,  CycleColors[4].color,  0.2f), toolTip = "Blue and cyan."       },
+                    new ModButtonInfo { buttonText = "Neon",      buttonOverlayText = "<color=#7FFF00>N</color><color=#8CFF19>e</color><color=#9AFF33>o</color><color=#A7FF4D>n</color>",                                                                                                                                                             method = () => Extra.Instance.SetTheme(CycleColors[13].color, CycleColors[4].color,  0.2f), toolTip = "Lime and cyan."       },
+                    new ModButtonInfo { buttonText = "Toxic",     buttonOverlayText = "<color=#7FFF00>T</color><color=#8CFF19>o</color><color=#9AFF33>x</color><color=#A7FF4D>i</color><color=#B5FF66>c</color>",                                                                                                                                     method = () => Extra.Instance.SetTheme(CycleColors[13].color, CycleColors[11].color, 0.2f), toolTip = "Lime and brown."      },
+                    new ModButtonInfo { buttonText = "Royal",     buttonOverlayText = "<color=#8A2BE2>R</color><color=#9B30FF>o</color><color=#A64AC9>y</color><color=#B266FF>a</color><color=#C080FF>l</color>",                                                                                                                                     method = () => Extra.Instance.SetTheme(CycleColors[6].color,  CycleColors[14].color, 0.2f), toolTip = "Purple and navy."     },
+                    new ModButtonInfo { buttonText = "Flare",     buttonOverlayText = "<color=#FF0000>F</color><color=#FF1A1A>l</color><color=#FF3333>a</color><color=#FF4D4D>r</color><color=#FF6666>e</color>",                                                                                                                                     method = () => Extra.Instance.SetTheme(CycleColors[0].color,  CycleColors[1].color,  0.2f), toolTip = "Red and orange."      },
+                    new ModButtonInfo { buttonText = "Sunset",    buttonOverlayText = "<color=#FFA500>S</color><color=#FFB733>u</color><color=#FFC966>n</color><color=#FFD999>s</color><color=#FFECCC>e</color><color=#FFF0FF>t</color>",                                                                                                             method = () => Extra.Instance.SetTheme(CycleColors[1].color,  CycleColors[8].color,  0.2f), toolTip = "Orange and white."    },
+                    new ModButtonInfo { buttonText = "Solar",     buttonOverlayText = "<color=#FFFF00>S</color><color=#FFFF33>o</color><color=#FFFF66>l</color><color=#FFFF99>a</color><color=#FFFFCC>r</color>",                                                                                                                                     method = () => Extra.Instance.SetTheme(CycleColors[2].color,  CycleColors[1].color,  0.2f), toolTip = "Yellow and orange."   },
+                    new ModButtonInfo { buttonText = "Frost",     buttonOverlayText = "<color=#00FFFF>F</color><color=#33FFFF>r</color><color=#66FFFF>o</color><color=#99FFFF>s</color><color=#CCFFFF>t</color>",                                                                                                                                     method = () => Extra.Instance.SetTheme(CycleColors[4].color,  CycleColors[15].color, 0.2f), toolTip = "Cyan and silver."     },
+                    new ModButtonInfo { buttonText = "Steel",     buttonOverlayText = "<color=#C0C0C0>S</color><color=#D0D0D0>t</color><color=#E0E0E0>e</color><color=#F0F0F0>e</color><color=#FFFFFF>l</color>",                                                                                                                                     method = () => Extra.Instance.SetTheme(CycleColors[15].color, CycleColors[12].color, 0.2f), toolTip = "Silver and gray."     },
+                    new ModButtonInfo { buttonText = "Shadow",    buttonOverlayText = "<color=#000000>S</color><color=#111111>h</color><color=#222222>a</color><color=#333333>d</color><color=#444444>o</color><color=#555555>w</color>",                                                                                                             method = () => Extra.Instance.SetTheme(CycleColors[7].color,  CycleColors[12].color, 0.2f), toolTip = "Black and gray."      },
+                    new ModButtonInfo { buttonText = "Inferno",   buttonOverlayText = "<color=#FF0000>I</color><color=#FF3300>n</color><color=#FF6600>f</color><color=#FF9900>e</color><color=#FFCC00>r</color><color=#FFFF00>n</color><color=#FFFF33>o</color>",                                                                                     method = () => Extra.Instance.SetTheme(CycleColors[0].color,  CycleColors[2].color,  0.2f), toolTip = "Red and yellow."      },
+                    new ModButtonInfo { buttonText = "Berry",     buttonOverlayText = "<color=#FF00FF>B</color><color=#FF33FF>e</color><color=#FF66FF>r</color><color=#FF99FF>r</color><color=#FFCCFF>y</color>",                                                                                                                                     method = () => Extra.Instance.SetTheme(CycleColors[9].color,  CycleColors[10].color, 0.2f), toolTip = "Magenta and pink."    },
+                    new ModButtonInfo { buttonText = "Midnight",  buttonOverlayText = "<color=#000000>M</color><color=#000033>i</color><color=#000066>d</color><color=#000099>n</color><color=#0000CC>i</color><color=#0000FF>g</color><color=#3333FF>h</color><color=#6666FF>t</color>",                                                             method = () => Extra.Instance.SetTheme(CycleColors[7].color,  CycleColors[5].color,  0.2f), toolTip = "Black and blue."      },
+                    new ModButtonInfo { buttonText = "Lava",      buttonOverlayText = "<color=#FF0000>L</color><color=#FF3300>a</color><color=#FF6600>v</color><color=#FF9900>a</color>",                                                                                                                                                             method = () => Extra.Instance.SetTheme(CycleColors[0].color,  CycleColors[12].color, 0.2f), toolTip = "Red and gray."        },
+                    new ModButtonInfo { buttonText = "Mint",      buttonOverlayText = "<color=#00FF7F>M</color><color=#33FF99>i</color><color=#66FFBB>n</color><color=#99FFDD>t</color>",                                                                                                                                                             method = () => Extra.Instance.SetTheme(CycleColors[3].color,  CycleColors[13].color, 0.2f), toolTip = "Green and lime."      },
+                    new ModButtonInfo { buttonText = "Peach",     buttonOverlayText = "<color=#FFA07A>P</color><color=#FFB080>e</color><color=#FFC099>a</color><color=#FFD0B3>c</color><color=#FFE0CC>h</color>",                                                                                                                                     method = () => Extra.Instance.SetTheme(CycleColors[1].color,  CycleColors[10].color, 0.2f), toolTip = "Orange and pink."     },
+                    new ModButtonInfo { buttonText = "Twilight",  buttonOverlayText = "<color=#8A2BE2>T</color><color=#9B30FF>w</color><color=#A64AC9>i</color><color=#B266FF>l</color><color=#C080FF>i</color><color=#D19EFF>g</color><color=#E0BFFF>h</color><color=#F0DFFF>t</color>",                                                             method = () => Extra.Instance.SetTheme(CycleColors[6].color,  CycleColors[4].color,  0.2f), toolTip = "Purple and cyan."     },
+                    new ModButtonInfo { buttonText = "Cobalt",    buttonOverlayText = "<color=#0000FF>C</color><color=#3333FF>o</color><color=#6666FF>b</color><color=#9999FF>a</color><color=#CCCCFF>l</color><color=#FFFFFF>t</color>",                                                                                                             method = () => Extra.Instance.SetTheme(CycleColors[5].color,  CycleColors[14].color, 0.2f), toolTip = "Blue and navy."       },
                 };
 
                 Api.Instance.tokenList.Add("Mods", "4");
@@ -665,32 +681,39 @@ namespace SeveralBees
                 Api.Instance.tokenListBackToken.Add("4", "Main");
                 Api.Instance.tokenListButtonInfo["4"] = new List<ModButtonInfo>
                 {
-                    new ModButtonInfo { buttonText = "Code/Dll Mod Browser", isTogglable = false, method = () => { Api.Instance.OpenMenu("5"); }, toolTip = "Opens the Code/Dll Mod Browser." },
-                    // i made this config veiwer to see how hard it would be, it was really hard.
-                    new ModButtonInfo { buttonText = "Mod Config Info", isTogglable = false, method = () => { Api.Instance.OpenMenu("6"); }, toolTip = "Opens the mod config editor." },
+                    new ModButtonInfo { buttonText = "Mod Browser",    method = () => Api.Instance.OpenMenu("5"),                                    toolTip = "Browse and install mods."          },
+                    new ModButtonInfo { buttonText = "Mod Toggle",     method = () => { RefreshInstalledMods(); Api.Instance.OpenMenu("9"); },         toolTip = "Toggle installed mods on or off." },
+                    new ModButtonInfo { buttonText = "Mod Config",     method = () => Api.Instance.OpenMenu("6"),                                    toolTip = "Opens the mod config editor."      },
+                    new ModButtonInfo { buttonText = "Loadouts",       method = () => { RefreshLoadoutsMenu(); Api.Instance.OpenMenu("10"); },         toolTip = "Manage mod loadouts."              },
                 };
 
-                Api.Instance.tokenList.Add("Code/Dll Mod Browser", "5");
+                Api.Instance.tokenList.Add("Mod Browser", "5");
                 Api.Instance.tokenListVisable.Add("5", false);
                 Api.Instance.tokenListBackToken.Add("5", "4");
-                Api.Instance.tokenListButtonInfo["5"] = new List<ModButtonInfo>
-                {
-                };
+                Api.Instance.tokenListButtonInfo["5"] = new List<ModButtonInfo>();
 
-                Api.Instance.tokenList.Add("Code/Dll Mod Config Info", "6");
+                Api.Instance.tokenList.Add("Mod Config", "6");
                 Api.Instance.tokenListVisable.Add("6", false);
                 Api.Instance.tokenListBackToken.Add("6", "4");
-                Api.Instance.tokenListButtonInfo["6"] = new List<ModButtonInfo>
-                {
-                };
+                Api.Instance.tokenListButtonInfo["6"] = new List<ModButtonInfo>();
+
+                Api.Instance.tokenList.Add("Mod Toggle", "9");
+                Api.Instance.tokenListVisable.Add("9", false);
+                Api.Instance.tokenListBackToken.Add("9", "4");
+                Api.Instance.tokenListButtonInfo["9"] = new List<ModButtonInfo>();
+
+                Api.Instance.tokenList.Add("Loadouts", "10");
+                Api.Instance.tokenListVisable.Add("10", false);
+                Api.Instance.tokenListBackToken.Add("10", "4");
+                Api.Instance.tokenListButtonInfo["10"] = new List<ModButtonInfo>();
 
                 Api.Instance.tokenList.Add("Credits", "7");
                 Api.Instance.tokenListVisable.Add("7", false);
                 Api.Instance.tokenListBackToken.Add("7", "1");
                 Api.Instance.tokenListButtonInfo["7"] = new List<ModButtonInfo>
                 {
-                    new ModButtonInfo { buttonText = "<color=purple>Sev</color>", isTogglable = false, toolTip = "Nearly everything." },
-                    new ModButtonInfo { buttonText = "<color=grey>Skellon</color>", isTogglable = false, toolTip = "Asset loader." },
+                    new ModButtonInfo { buttonText = "<color=purple>Sev</color>",    toolTip = "Nearly everything." },
+                    new ModButtonInfo { buttonText = "<color=grey>Skellon</color>",  toolTip = "Asset loader."      },
                 };
 
                 Api.Instance.tokenList.Add("<color=red>Update</color>", "NotNew");
@@ -698,36 +721,41 @@ namespace SeveralBees
                 Api.Instance.tokenListBackToken.Add("NotNew", "NotNew");
                 Api.Instance.tokenListButtonInfo["NotNew"] = new List<ModButtonInfo>
                 {
-                    new ModButtonInfo { buttonText = "<color=red>Please Update</color>", isTogglable = false, toolTip = "Click 'Update' to update the mod." },
-                    new ModButtonInfo { buttonText = "<color=orange>Update</color>", method = () => InstallLatestMod(Config.ModDownload, ModBrowser.Instance.GetModName(Config.ModDownload)), isTogglable = false, toolTip = "Installs the latest version of Several Bees." },
-                    new ModButtonInfo { buttonText = "<color=yellow>GitHub</color>", method = () => 
+                    new ModButtonInfo { buttonText = "<color=red>Please Update</color>", toolTip = "Click 'Update' to update." },
+                    new ModButtonInfo { buttonText = "<color=orange>Update</color>", method = () => InstallLatestMod(Config.ModDownload, ModBrowser.Instance.GetModName(Config.ModDownload)), toolTip = "Installs the latest Several Bees." },
+                    new ModButtonInfo { buttonText = "<color=yellow>GitHub</color>", method = () =>
                     {
-                        string repoLink = Config.ModDownload;
-                        int index = repoLink.IndexOf("/releases/");
-                        if (index != -1)
-                        repoLink = repoLink.Substring(0, index);
-
-                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                        {
-                            FileName = repoLink,
-                            UseShellExecute = true
-                        });
-                    }, isTogglable = false, toolTip = "Opens the Several Bees GitHub." },
+                        string link = Config.ModDownload;
+                        int idx = link.IndexOf("/releases/");
+                        if (idx != -1) link = link.Substring(0, idx);
+                        Process.Start(new ProcessStartInfo { FileName = link, UseShellExecute = true });
+                    }, toolTip = "Opens the Several Bees GitHub." },
                 };
 
                 Api.Instance.tokenList.Add("General Settings", "8");
                 Api.Instance.tokenListVisable.Add("8", false);
                 Api.Instance.tokenListBackToken.Add("8", "1");
-                List<ModButtonInfo> GenSettings = new List<ModButtonInfo>{
-                    new ModButtonInfo { disableMethod = () => PlayerPrefs.SetInt("SBSoundEffects", 0), enableMethod = () => PlayerPrefs.SetInt("SBSoundEffects", 1), enabled = (PlayerPrefs.GetInt("SBSoundEffects", 1) == 1 ? true : false), buttonText = "Sound Effects", isTogglable = true, toolTip = "Toggles sound effects such as button clicks." },
-                    new ModButtonInfo { disableMethod = () => PlayerPrefs.SetInt("SBAnimations", 0), enableMethod = () => PlayerPrefs.SetInt("SBAnimations", 1), enabled = (PlayerPrefs.GetInt("SBAnimations", 1) == 1 ? true : false), buttonText = "Animations", isTogglable = true, toolTip = "Toggles animations for Mod Machines spawning in and de-spawning." },
-                    new ModButtonInfo { disableMethod = () => PlayerPrefs.SetInt("SBRestartOnMod", 0), enableMethod = () => PlayerPrefs.SetInt("SBRestartOnMod", 1), enabled = (PlayerPrefs.GetInt("SBRestartOnMod", 1) == 1 ? true : false), buttonText = "Restart On Mod", isTogglable = true, toolTip = "Toggles if the game should automaticly restart on mod install, un-install, and update." },
-                    new ModButtonInfo { disableMethod = () => PlayerPrefs.SetInt("SBOpenGesture", 0), enableMethod = () => PlayerPrefs.SetInt("SBOpenGesture", 1), enabled = (PlayerPrefs.GetInt("SBOpenGesture", 1) == 1 ? true : false), buttonText = "Open Gesture", isTogglable = true, toolTip = "Toggles if the mod should spawn a new machine when the user does the spawn gesture." },
+                var gen = new List<ModButtonInfo>
+                {
+                    new ModButtonInfo { buttonText = "Sound Effects",  isTogglable = true, enabled = PlayerPrefs.GetInt("SBSoundEffects",  1) == 1, enableMethod = () => PlayerPrefs.SetInt("SBSoundEffects",  1), disableMethod = () => PlayerPrefs.SetInt("SBSoundEffects",  0), toolTip = "Toggles sound effects."            },
+                    new ModButtonInfo { buttonText = "Animations",     isTogglable = true, enabled = PlayerPrefs.GetInt("SBAnimations",     1) == 1, enableMethod = () => PlayerPrefs.SetInt("SBAnimations",     1), disableMethod = () => PlayerPrefs.SetInt("SBAnimations",     0), toolTip = "Toggles spawn animations."         },
+                    new ModButtonInfo { buttonText = "Restart On Mod", isTogglable = true, enabled = PlayerPrefs.GetInt("SBRestartOnMod",   1) == 1, enableMethod = () => PlayerPrefs.SetInt("SBRestartOnMod",   1), disableMethod = () => PlayerPrefs.SetInt("SBRestartOnMod",   0), toolTip = "Auto-restart on mod changes."      },
+                    new ModButtonInfo { buttonText = "Open Gesture",   isTogglable = true, enabled = PlayerPrefs.GetInt("SBOpenGesture",    1) == 1, enableMethod = () => PlayerPrefs.SetInt("SBOpenGesture",    1), disableMethod = () => PlayerPrefs.SetInt("SBOpenGesture",    0), toolTip = "Toggles the hand spawn gesture."   },
                 };
 
-                if(Config.CompType == ComputerType.FullMachine) GenSettings.Add(new ModButtonInfo { disableMethod = () => PlayerPrefs.SetInt("SBPhysBackButton", 0), enableMethod = () => PlayerPrefs.SetInt("SBPhysBackButton", 1), enabled = (PlayerPrefs.GetInt("SBPhysBackButton", 0) == 1 ? true : false), buttonText = "Physical Back Button", isTogglable = true, toolTip = "Toggles if the mod maneger has a physical back button." });
+                if (Config.CompType == ComputerType.FullMachine)
+                    gen.Add(new ModButtonInfo { buttonText = "Physical Back Button", isTogglable = true, enabled = PlayerPrefs.GetInt("SBPhysBackButton", 0) == 1, enableMethod = () => PlayerPrefs.SetInt("SBPhysBackButton", 1), disableMethod = () => PlayerPrefs.SetInt("SBPhysBackButton", 0), toolTip = "Toggles the physical back button." });
 
-                Api.Instance.tokenListButtonInfo["8"] = GenSettings;
+                Api.Instance.tokenListButtonInfo["8"] = gen;
+
+                Api.Instance.tokenList.Add("<color=orange>Loading Plugins</color>", "LoadPlugins");
+                Api.Instance.tokenListVisable.Add("LoadPlugins", false);
+                Api.Instance.tokenListBackToken.Add("LoadPlugins", "LoadPlugins");
+                Api.Instance.tokenListButtonInfo["LoadPlugins"] = new List<ModButtonInfo>
+                {
+                    new ModButtonInfo { buttonText = "Loading Plugins,", toolTip = "" },
+                    new ModButtonInfo { buttonText = "Please wait...",   toolTip = "" },
+                };
 
                 Settings.Load();
                 Settings.SetButtonNames();
@@ -736,499 +764,1081 @@ namespace SeveralBees
             }
             catch (Exception e)
             {
-                UnityEngine.Debug.Log("[Several Bees] Error in Making Settings Menu (Start SeveralBees.SeveralBees): " + e.Message);
+                UnityEngine.Debug.Log("[Several Bees] MakeSettings error: " + e.Message);
             }
         }
+
+        #endregion
+
+        #region Config Editor
 
         internal void RefreshConfigEditor()
         {
-            Api.Instance.tokenListButtonInfo["6"] = new List<ModButtonInfo>
+            configCache.Clear();
+
+            var buttons = new List<ModButtonInfo>
+            {
+                new ModButtonInfo { buttonText = "<color=red>Refresh</color>", method = RefreshConfigEditor, toolTip = "Refreshes the config list." }
+            };
+
+            string configFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "BepInEx", "config");
+            if (!Directory.Exists(configFolder)) { Api.Instance.tokenListButtonInfo["6"] = buttons; return; }
+
+            foreach (var file in Directory.GetFiles(configFolder, "*.cfg", SearchOption.TopDirectoryOnly))
+            {
+                string name = Path.GetFileNameWithoutExtension(file);
+                var entries = ParseConfigFile(file);
+                configCache[file] = entries;
+
+                string capturedFile = file;
+                string capturedName = name;
+                buttons.Add(new ModButtonInfo
+                {
+                    buttonText = capturedName,
+                    toolTip = $"Edit config for {capturedName}.",
+                    method = () => OpenConfigPage(capturedName, capturedFile)
+                });
+            }
+
+            Api.Instance.tokenListButtonInfo["6"] = buttons;
+        }
+
+        private List<ConfigEntry> ParseConfigFile(string path)
+        {
+            var entries = new List<ConfigEntry>();
+            string section = "";
+            var comments = new List<string>();
+
+            foreach (var line in File.ReadAllLines(path))
+            {
+                string t = line.Trim();
+                if (string.IsNullOrEmpty(t)) continue;
+
+                if (t.StartsWith("[") && t.EndsWith("]"))
+                {
+                    section = t.Substring(1, t.Length - 2);
+                    comments.Clear();
+                    continue;
+                }
+
+                if (t.StartsWith("#")) { comments.Add(t.TrimStart('#', ' ').Trim()); continue; }
+
+                int eq = t.IndexOf('=');
+                if (eq < 0) continue;
+
+                string key = t.Substring(0, eq).Trim();
+                string val = t.Substring(eq + 1).Trim();
+                string desc = "";
+                string acceptable = "";
+                string typeName = "";
+
+                foreach (var c in comments)
+                {
+                    if (c.StartsWith("Acceptable values:", StringComparison.OrdinalIgnoreCase))
+                        acceptable = c.Substring("Acceptable values:".Length).Trim();
+                    else if (c.StartsWith("Setting type:", StringComparison.OrdinalIgnoreCase))
+                        typeName = c.Substring("Setting type:".Length).Trim();
+                    else if (!c.StartsWith("Default value:", StringComparison.OrdinalIgnoreCase))
+                        desc += c + " ";
+                }
+
+                entries.Add(new ConfigEntry
+                {
+                    Section = section,
+                    Key = key,
+                    Value = val,
+                    Description = desc.Trim(),
+                    AcceptableValues = acceptable,
+                    TypeName = typeName,
+                    FilePath = path
+                });
+
+                comments.Clear();
+            }
+
+            return entries;
+        }
+
+        internal void OpenConfigPage(string modName, string filePath)
+        {
+            var entries = configCache.ContainsKey(filePath) ? configCache[filePath] : ParseConfigFile(filePath);
+
+            var buttons = new List<ModButtonInfo>
             {
                 new ModButtonInfo
                 {
-                    buttonText = "<color=red>Loading...</color>",
-                    toolTip = "Please wait while we load the mod config catalog. Time may vary depending on your disk speed."
-                },
+                    buttonText = "<color=red>Refresh</color>",
+                    method = () => { configCache.Remove(filePath); OpenConfigPage(modName, filePath); },
+                    toolTip = "Reloads config from disk."
+                }
             };
 
-            List<ModButtonInfo> Buttons = new List<ModButtonInfo>();
-
-            Buttons.Add(new ModButtonInfo
+            foreach (var entry in entries)
             {
-                buttonText = "<color=red>Refresh</color>",
-                isTogglable = false,
-                toolTip = $"Refreshes the config catalog.",
-                method = () => RefreshConfigEditor()
-            });
+                var e = entry;
+                bool isBool = e.TypeName.Equals("Boolean", StringComparison.OrdinalIgnoreCase)
+                    || e.Value.Equals("true", StringComparison.OrdinalIgnoreCase)
+                    || e.Value.Equals("false", StringComparison.OrdinalIgnoreCase);
 
-            string configFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "BepInEx", "config");
-            if (!Directory.Exists(configFolder))
+                bool isEnum = !isBool && !string.IsNullOrEmpty(e.AcceptableValues) && e.AcceptableValues.Contains(",");
+
+                if (isBool)
+                {
+                    bool cur = e.Value.Equals("true", StringComparison.OrdinalIgnoreCase);
+                    string col = cur ? "green" : "red";
+                    string tip = string.IsNullOrEmpty(e.Description) ? $"{e.Section} > {e.Key}" : e.Description;
+
+                    buttons.Add(new ModButtonInfo
+                    {
+                        buttonText = $"{e.Section}/{e.Key}: <color={col}>{e.Value}</color>",
+                        toolTip = tip,
+                        method = () =>
+                        {
+                            bool next = !e.Value.Equals("true", StringComparison.OrdinalIgnoreCase);
+                            WriteConfigValue(e.FilePath, e.Section, e.Key, next.ToString());
+                            e.Value = next.ToString();
+                            OpenConfigPage(modName, filePath);
+                        }
+                    });
+                }
+                else if (isEnum)
+                {
+                    var options = e.AcceptableValues.Split(new[] { ", " }, StringSplitOptions.RemoveEmptyEntries).ToList();
+                    int cur = Mathf.Max(0, options.IndexOf(e.Value));
+                    string tip = string.IsNullOrEmpty(e.Description)
+                        ? $"Options: {e.AcceptableValues}"
+                        : $"{e.Description} | Options: {e.AcceptableValues}";
+
+                    buttons.Add(new ModButtonInfo
+                    {
+                        buttonText = $"{e.Section}/{e.Key}: {e.Value}",
+                        toolTip = tip,
+                        method = () =>
+                        {
+                            string next = options[(cur + 1) % options.Count];
+                            WriteConfigValue(e.FilePath, e.Section, e.Key, next);
+                            e.Value = next;
+                            OpenConfigPage(modName, filePath);
+                        }
+                    });
+                }
+            }
+
+            string token = "cfg_" + modName;
+            Api.Instance.tokenList[modName] = token;
+            if (!Api.Instance.tokenListVisable.ContainsKey(token)) Api.Instance.tokenListVisable[token] = false;
+            if (!Api.Instance.tokenListBackToken.ContainsKey(token)) Api.Instance.tokenListBackToken[token] = "6";
+            Api.Instance.tokenListButtonInfo[token] = buttons;
+            Api.Instance.OpenMenu(token);
+        }
+
+        private void WriteConfigValue(string filePath, string section, string key, string value)
+        {
+            try
             {
-                Api.Instance.tokenListButtonInfo["6"] = Buttons;
+                var lines = File.ReadAllLines(filePath).ToList();
+                string cur = "";
+                for (int i = 0; i < lines.Count; i++)
+                {
+                    string t = lines[i].Trim();
+                    if (t.StartsWith("[") && t.EndsWith("]")) { cur = t.Substring(1, t.Length - 2); continue; }
+                    if (cur != section) continue;
+                    int eq = t.IndexOf('=');
+                    if (eq < 0) continue;
+                    if (t.Substring(0, eq).Trim() != key) continue;
+                    lines[i] = key + " = " + value;
+                    break;
+                }
+                File.WriteAllLines(filePath, lines);
+            }
+            catch (Exception ex)
+            {
+                UnityEngine.Debug.LogError("[Several Bees] Config write error: " + ex.Message);
+            }
+        }
+
+        #endregion
+
+        #region Mod Browser
+
+        internal async void CheckModUpdatesAsync()
+        {
+            if (fetchingModUpdates) return;
+            fetchingModUpdates = true;
+
+            await Task.Delay(500);
+
+            var snap = new List<KeyValuePair<string, string>>(cachedMods);
+
+            if (snap.Count == 0)
+            {
+                fetchingModUpdates = false;
                 return;
             }
 
-            foreach (var filePath in Directory.GetFiles(configFolder, "*.cfg", SearchOption.TopDirectoryOnly))
+            var tasks = snap.Select(async mod =>
             {
-                string pluginName = Path.GetFileNameWithoutExtension(filePath);
-
-                List<string> Values = new List<string>();
-                List<string> Acceptables = new List<string>();
-                List<string> Description = new List<string>();
-                List<string> Names = new List<string>();
-
-                string currentSection = "";
-                List<string> commentBuffer = new List<string>();
-
-                foreach (var line in File.ReadAllLines(filePath))
+                string link = mod.Value;
+                try
                 {
-                    string trimmed = line.Trim();
-                    if (string.IsNullOrEmpty(trimmed))
-                        continue;
-
-                    if (trimmed.StartsWith("[") && trimmed.EndsWith("]"))
-                    {
-                        currentSection = trimmed.Substring(1, trimmed.Length - 2);
-                        commentBuffer.Clear();
-                        continue;
-                    }
-
-                    if (trimmed.StartsWith("#") || trimmed.StartsWith("##"))
-                    {
-                        commentBuffer.Add(trimmed);
-                        continue;
-                    }
-
-                    int eqIndex = trimmed.IndexOf('=');
-                    if (eqIndex < 0) continue;
-
-                    string key = trimmed.Substring(0, eqIndex).Trim();
-                    string value = trimmed.Substring(eqIndex + 1).Trim();
-                    string description = "";
-                    string acceptable = "";
-
-                    foreach (var comment in commentBuffer)
-                    {
-                        string c = comment.TrimStart('#', ' ').Trim();
-
-                        if (c.StartsWith("Acceptable values:", StringComparison.OrdinalIgnoreCase))
-                            acceptable = c.Substring("Acceptable values:".Length).Trim();
-                        else if (c.StartsWith("Setting type:", StringComparison.OrdinalIgnoreCase))
-                            continue;
-                        else if (c.StartsWith("Default value:", StringComparison.OrdinalIgnoreCase))
-                            continue;
-                        else
-                            description += c + " ";
-                    }
-
-                    description = description.Trim();
-                    commentBuffer.Clear();
-
-                    Values.Add(value);
-                    Acceptables.Add(acceptable);
-                    Description.Add(description);
-                    Names.Add(currentSection);
+                    string latest = await ModBrowser.Instance.GetGitHubTagAsync(link);
+                    string saved = PlayerPrefs.GetString("SBModVer_" + link, "");
+                    bool needsUpdate = !string.IsNullOrEmpty(saved) && saved != latest;
+                    return new KeyValuePair<string, bool>(link, needsUpdate);
                 }
+                catch { return new KeyValuePair<string, bool>(link, false); }
+            }).ToList();
 
-                Buttons.Add(new ModButtonInfo
-                {
-                    buttonText = pluginName,
-                    isTogglable = false,
-                    toolTip = $"Opens the config for {pluginName}.",
-                    method = () => OpenModConfigPage(pluginName, filePath, Values, Acceptables, Description, Names)
-                });
-            }
+            var results = await Task.WhenAll(tasks);
 
-            Api.Instance.tokenListButtonInfo["6"] = Buttons;
-        }
+            modUpdateAvailable.Clear();
+            foreach (var r in results)
+                if (r.Value) modUpdateAvailable.Add(r.Key);
 
-        internal void OpenModConfigPage(string ModName, string MakeShiftToken, List<string> Values, List<string> Acceptables, List<string> Description, List<string> Names)
-        {
-            List<ModButtonInfo> Buttons = new List<ModButtonInfo>();
-            Buttons.Add(new ModButtonInfo
-            {
-                buttonText = $"<color=grey>----------</color>",
-                isTogglable = false,
-                toolTip = $""
-            });
-
-            for (int r = 0; r < Values.Count; r++)
-            {
-                if (string.IsNullOrEmpty(Acceptables[r]) || !Acceptables[r].Contains(Values[r])) continue;
-                Buttons.Add(new ModButtonInfo
-                {
-                    buttonText = Names[r],
-                    isTogglable = false,
-                    toolTip = $"The name of this config."
-                });
-
-                Buttons.Add(new ModButtonInfo
-                {
-                    buttonText = $"Description (Click)",
-                    isTogglable = false,
-                    toolTip = $"{Description[r]}"
-                });
-
-                string NewValue = Values[r];
-                int NewValueNum = 0;
-
-                NewValueNum = Acceptables[r].Split(", ").ToList().IndexOf(Values[r]);
-                NewValueNum++;
-                if (NewValueNum >= Acceptables[r].Split(", ").Length)
-                {
-                    NewValueNum = 0;
-                }
-                NewValue = Acceptables[r].Split(", ")[NewValueNum];
-
-                Buttons.Add(new ModButtonInfo
-                {
-                    buttonText = $"Value: {Values[r]}",
-                    isTogglable = false,
-                    toolTip = $"The current setting of the config."
-                });
-
-                Buttons.Add(new ModButtonInfo
-                {
-                    buttonText = $"<color=grey>----------</color>",
-                    isTogglable = false,
-                    toolTip = $""
-                });
-            }
-            Api.Instance.tokenList[ModName] = MakeShiftToken;
-            Api.Instance.tokenListVisable[MakeShiftToken] = false;
-            Api.Instance.tokenListBackToken[MakeShiftToken] = "6";
-            Api.Instance.tokenListButtonInfo[MakeShiftToken] = Buttons;
-
-            Api.Instance.OpenMenu(MakeShiftToken);
-        }
-
-        internal AudioClip GetLoadedSound(string fileLink)
-        {
-            try
-            {
-                if (string.IsNullOrEmpty(fileLink)) return null;
-                if (Plugin.Instance.LoadedSounds.TryGetValue(fileLink, out AudioClip clip)) return clip;
-            } catch { }
-            return null;
-        }
-
-        internal void PlaySound(string Url, float Volume = 0.4f)
-        {
-            try
-            {
-                if (!Api.Instance.GrabButton("8", "Sound Effects").enabled) return;
-                AudioClip Clip = GetLoadedSound(Url);
-                GameObject soundObject = new GameObject("Sev Essence Sound Player");
-                AudioSource Player = soundObject.AddComponent<AudioSource>();
-                Player.clip = Clip;
-                Player.volume = Volume;
-                Player.Play();
-                GameObject.Destroy(soundObject, Player.clip.length);
-            } catch { }
+            fetchingModUpdates = false;
+            RebuildModBrowserButtons();
         }
 
         internal void RefreshModsList()
         {
             Api.Instance.tokenListButtonInfo["5"] = new List<ModButtonInfo>
             {
-                new ModButtonInfo { buttonText = "<color=red>Loading...</color>", toolTip = "Please wait why we load the mod catalog. Time may varey depending on your internet connection." },
+                new ModButtonInfo { buttonText = "<color=red>Loading...</color>", toolTip = "Loading mod catalog..." }
             };
-
 
             ModBrowser.Instance.GetMods(mods =>
             {
-                List<ModButtonInfo> Buttons = new List<ModButtonInfo>();
-
-                Buttons.Add(new ModButtonInfo
+                cachedMods = mods.Where(m =>
                 {
-                    buttonText = "<color=orange>Search</color>",
-                    isTogglable = false,
-                    toolTip = $"Lets you search the mod catalog."
-                });
-                Buttons.Add(new ModButtonInfo
+                    string n = StripHtml(m.Key).Trim('"', ' ', '\t', '\n', '\r');
+                    if (string.IsNullOrWhiteSpace(n)) return false;
+                    if (n.Contains('"') || n.Contains("://")) return false;
+                    if (n.Contains(".com") || n.Contains(".io") || n.Contains(".net") || n.Contains(".org")) return false;
+                    if (n.Length < 2 || n.Length > 64) return false;
+                    return true;
+                }).ToList();
+
+                if (currentSortMode == "Most Downloaded" && !fetchingDownloadCounts)
+                    FetchDownloadCountsThenRebuild();
+                else
+                    RebuildModBrowserButtons();
+
+                CheckModUpdatesAsync();
+            });
+        }
+
+        private void RebuildModBrowserButtons()
+        {
+            string pluginsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "BepInEx", "plugins");
+
+            var sorted = new List<KeyValuePair<string, string>>(cachedMods);
+
+            switch (currentSortMode)
+            {
+                case "Alphabetical":
+                    sorted = sorted.OrderBy(m => StripHtml(m.Key).Trim('"', ' ')).ToList();
+                    break;
+                case "Most Downloaded":
+                    sorted = sorted.OrderByDescending(m => modDownloadCounts.ContainsKey(m.Value) ? modDownloadCounts[m.Value] : 0).ToList();
+                    break;
+                case "Installed":
+                    sorted = sorted.OrderByDescending(m =>
+                    {
+                        string n = StripHtml(m.Key).Trim('"', ' ');
+                        return File.Exists(Path.Combine(pluginsPath, n + ".dll")) || File.Exists(Path.Combine(pluginsPath, n + ".dll.disabled")) ? 1 : 0;
+                    }).ToList();
+                    break;
+                case "Needs Update":
+                    sorted = sorted.OrderByDescending(m => modUpdateAvailable.Contains(m.Value) ? 1 : 0).ToList();
+                    break;
+            }
+
+            var sortModes = new[] { "Classic", "Alphabetical", "Most Downloaded", "Installed", "Needs Update" };
+            int curIdx = Array.IndexOf(sortModes, currentSortMode);
+            if (curIdx < 0) curIdx = 0;
+            int nextIdx = (curIdx + 1) % sortModes.Length;
+
+            var buttons = new List<ModButtonInfo>
+            {
+                new ModButtonInfo
+                {
+                    buttonText = $"<color=grey>Sort: </color>{currentSortMode}",
+                    toolTip = $"Currently sorting by {currentSortMode}. Click to switch to {sortModes[nextIdx]}.",
+                    method = () =>
+                    {
+                        currentSortMode = sortModes[nextIdx];
+                        if (currentSortMode == "Most Downloaded" && modDownloadCounts.Count == 0)
+                            FetchDownloadCountsThenRebuild();
+                        else
+                            RebuildModBrowserButtons();
+                    }
+                },
+                new ModButtonInfo
                 {
                     buttonText = "<color=red>Refresh</color>",
-                    isTogglable = false,
-                    toolTip = $"Refreshes the mod catalog.",
-                    method = () => RefreshModsList()
-                });
-
-                foreach (var mod in mods)
-                {
-                    string modName = mod.Key;
-                    string modLink = mod.Value;
-                    Buttons.Add(new ModButtonInfo
-                    {
-                        buttonText = modName,
-                        isTogglable = false,
-                        toolTip = $"Opens the config info page for the '{modName}' mod.",
-                        method = () => OpenCodeModPage(modName, modLink)
-                    });
+                    toolTip = "Refreshes the catalog and re-checks for updates.",
+                    method = () => { modDownloadCounts.Clear(); modUpdateAvailable.Clear(); RefreshModsList(); }
                 }
-
-                Api.Instance.tokenListButtonInfo["5"] = Buttons;
-
-            });
-        }
-
-        internal void OpenCodeModPage(string ModName, string ModLink)
-        {
-            List<ModButtonInfo> Buttons = new List<ModButtonInfo>();
-
-            string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "BepInEx", "plugins", ModName + ".dll");
-            if (File.Exists(path))
-            {
-                Buttons.Add(new ModButtonInfo
-                {
-                    buttonText = "<color=red>Uninstall</color>",
-                    isTogglable = false,
-                    toolTip = $"Uninstalls {ModName}.",
-                    method = () => UninstallMod(ModName, ModLink)
-                });
-                Buttons.Add(new ModButtonInfo
-                {
-                    buttonText = "<color=orange>Install Latest</color>",
-                    isTogglable = false,
-                    toolTip = $"Installs the latest version of {ModName}.",
-                    method = () => InstallLatestMod(ModLink, ModName)
-                });
-            }
-            else
-            {
-                Buttons.Add(new ModButtonInfo
-                {
-                    buttonText = "<color=green>Install</color>",
-                    isTogglable = false,
-                    toolTip = $"Installs {ModName}.",
-                    method = () => InstallMod(ModLink, ModName)
-                });
-                Buttons.Add(new ModButtonInfo
-                {
-                    buttonText = "<color=green>Install & Inject</color>",
-                    isTogglable = false,
-                    toolTip = $"Installs {ModName} as well as injecting/loading it.",
-                    method = () => InstallModAndInject(ModLink, ModName)
-                });
-            }
-
-            Buttons.Add(new ModButtonInfo
-            {
-                buttonText = "Open GitHub",
-                isTogglable = false,
-                toolTip = $"Opens the GitHub for {ModName}.",
-                method = () =>
-                {
-                    string repoLink = ModLink;
-                    int index = repoLink.IndexOf("/releases/");
-                    if (index != -1)
-                        repoLink = repoLink.Substring(0, index);
-
-                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                    {
-                        FileName = repoLink,
-                        UseShellExecute = true
-                    });
-                }
-            });
-
-            Api.Instance.tokenList[ModName] = ModLink;
-            Api.Instance.tokenListVisable[ModLink] = false;
-            Api.Instance.tokenListBackToken[ModLink] = "5";
-            Api.Instance.tokenListButtonInfo[ModLink] = Buttons;
-
-            Api.Instance.OpenMenu(ModLink);
-        }
-
-        internal void InstallMod(string ModLink, string ModName)
-        {
-            string pluginsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "BepInEx", "plugins");
-            if (!Directory.Exists(pluginsPath)) Directory.CreateDirectory(pluginsPath);
-
-            string tempFile = Path.Combine(Path.GetTempPath(), ModName + ".dll");
-
-            using (var client = new System.Net.WebClient())
-            {
-                client.DownloadProgressChanged += (s, e) => Api.Instance.tokenListButtonInfo[ModLink] = new List<ModButtonInfo> { new ModButtonInfo { buttonText = "<color=orange>Installing... " + e.ProgressPercentage + "%</color>", toolTip = "Please wait.." } };
-                client.DownloadFileCompleted += (s, e) => Api.Instance.tokenListButtonInfo[ModLink] = new List<ModButtonInfo> { new ModButtonInfo { buttonText = "<color=green>" + "Install Complete" + "</color>", toolTip = "Please wait.." } };
-                client.DownloadFileAsync(new Uri(ModLink), tempFile);
-                while (client.IsBusy) Thread.Sleep(100);
-            }
-
-            string destFile = Path.Combine(pluginsPath, ModName + ".dll");
-            if (File.Exists(destFile)) File.Delete(destFile);
-            File.Move(tempFile, destFile);
-
-            if (!Api.Instance.GrabButton("8", "Restart On Mod").enabled) return;
-
-            Api.Instance.tokenListButtonInfo[ModLink] = new List<ModButtonInfo> { new ModButtonInfo { buttonText = "<color=orange>" + "Restarting game..." + "</color>", toolTip = "Please wait.." } };
-
-            RestartApp();
-        }
-
-        internal void InstallModAndInject(string ModLink, string ModName)
-        {
-            string pluginsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "BepInEx", "plugins");
-            if (!Directory.Exists(pluginsPath)) Directory.CreateDirectory(pluginsPath);
-
-            string dllPath = Path.Combine(pluginsPath, ModName + ".dll");
-            if (File.Exists(dllPath)) File.Delete(dllPath);
-
-            Api.Instance.tokenListButtonInfo[ModLink] = new List<ModButtonInfo>
-            {
-                new ModButtonInfo { buttonText = "<color=orange>Installing...</color>", toolTip = "Please wait.." }
             };
 
-            using (var client = new System.Net.WebClient())
+            foreach (var mod in sorted)
             {
-                client.DownloadFileAsync(new Uri(ModLink), dllPath);
-                while (client.IsBusy) Thread.Sleep(100);
+                string n = StripHtml(mod.Key).Trim('"', ' ', '\t', '\n', '\r');
+                string l = mod.Value;
+                bool hasUpdate = modUpdateAvailable.Contains(l);
+                string label = hasUpdate ? $"{n} <color=red>(!)</color>" : n;
+                string tip = hasUpdate ? $"Update available for '{n}'." : $"Opens the page for '{n}'.";
+                buttons.Add(new ModButtonInfo { buttonText = label, toolTip = tip, method = () => OpenCodeModPage(n, l) });
             }
-            Api.Instance.tokenListButtonInfo[ModLink] = new List<ModButtonInfo>
+
+            Api.Instance.tokenListButtonInfo["5"] = buttons;
+        }
+
+        private async void FetchDownloadCountsThenRebuild()
+        {
+            fetchingDownloadCounts = true;
+
+            Api.Instance.tokenListButtonInfo["5"] = new List<ModButtonInfo>
             {
-                new ModButtonInfo { buttonText = "<color=green>Installed</color>", toolTip = "Mod fully installed" },
-                new ModButtonInfo { buttonText = "<color=orange>Attempting to load...</color>" }
+                new ModButtonInfo { buttonText = "<color=orange>Fetching download counts...</color>", toolTip = "Grabbing GitHub stats." }
             };
+
+            var tasks = cachedMods.Select(async mod =>
+            {
+                string link = mod.Value;
+                int idx = link.IndexOf("/releases/");
+                string repoBase = idx != -1 ? link.Substring(0, idx) : link;
+
+                string[] parts = repoBase.TrimEnd('/').Split('/');
+                if (parts.Length < 2) return new KeyValuePair<string, int>(link, 0);
+
+                string owner = parts[parts.Length - 2];
+                string repo = parts[parts.Length - 1];
+                string apiUrl = $"https://api.github.com/repos/{owner}/{repo}/releases";
+
+                try
+                {
+                    using (var client = new System.Net.WebClient())
+                    {
+                        client.Headers.Add("User-Agent", "SeveralBees");
+                        string json = await client.DownloadStringTaskAsync(apiUrl);
+                        int total = 0;
+                        int searchFrom = 0;
+                        while (true)
+                        {
+                            int dcIdx = json.IndexOf("\"download_count\":", searchFrom);
+                            if (dcIdx < 0) break;
+                            int valStart = dcIdx + 17;
+                            int valEnd = valStart;
+                            while (valEnd < json.Length && char.IsDigit(json[valEnd])) valEnd++;
+                            if (int.TryParse(json.Substring(valStart, valEnd - valStart), out int count))
+                                total += count;
+                            searchFrom = valEnd;
+                        }
+                        return new KeyValuePair<string, int>(link, total);
+                    }
+                }
+                catch { return new KeyValuePair<string, int>(link, 0); }
+            }).ToList();
+
+            var results = await Task.WhenAll(tasks);
+            foreach (var r in results)
+                modDownloadCounts[r.Key] = r.Value;
+
+            fetchingDownloadCounts = false;
+            RebuildModBrowserButtons();
+        }
+
+        internal void RefreshInstalledMods()
+        {
+            string pluginsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "BepInEx", "plugins");
+            var buttons = new List<ModButtonInfo>
+            {
+                new ModButtonInfo { buttonText = "<color=red>Refresh</color>", toolTip = "Refreshes the mod list.", method = RefreshInstalledMods }
+            };
+
+            if (!Directory.Exists(pluginsPath))
+            {
+                buttons.Add(new ModButtonInfo { buttonText = "<color=grey>No plugins folder</color>", toolTip = "BepInEx plugins folder not found." });
+                Api.Instance.tokenListButtonInfo["9"] = buttons;
+                return;
+            }
+
+            var dlls = Directory.GetFiles(pluginsPath, "*.dll").Select(f => new InstalledMod { Name = Path.GetFileNameWithoutExtension(f), Path = f, OnDisk = true });
+            var disabled = Directory.GetFiles(pluginsPath, "*.dll.disabled").Select(f => new InstalledMod { Name = Path.GetFileNameWithoutExtension(f).Replace(".dll", ""), Path = f, OnDisk = false });
+            var all = dlls.Concat(disabled).OrderBy(m => m.Name).ToList();
+
+            if (all.Count == 0)
+            {
+                buttons.Add(new ModButtonInfo { buttonText = "<color=grey>No mods installed</color>", toolTip = "Install mods via Mod Browser." });
+                Api.Instance.tokenListButtonInfo["9"] = buttons;
+                return;
+            }
+
+            foreach (var mod in all)
+            {
+                var guid = BepInEx.Bootstrap.Chainloader.PluginInfos.Keys.FirstOrDefault(k =>
+                    string.Equals(k, mod.Name, StringComparison.OrdinalIgnoreCase) ||
+                    BepInEx.Bootstrap.Chainloader.PluginInfos[k].Metadata.Name.Equals(mod.Name, StringComparison.OrdinalIgnoreCase));
+
+                if (guid != null)
+                {
+                    BepInEx.Bootstrap.Chainloader.PluginInfos.TryGetValue(guid, out var info);
+                    mod.PluginInfo = info;
+                    mod.LiveInstance = info?.Instance;
+                }
+
+                if (mod.LiveInstance != null)
+                {
+                    var prop = mod.LiveInstance.GetType().GetProperty("Enabled", BindingFlags.Public | BindingFlags.Instance);
+                    if (prop != null) mod.LiveEnabled = (bool?)prop.GetValue(mod.LiveInstance);
+                }
+            }
+
+            foreach (var mod in all)
+            {
+                var m = mod;
+                bool effectivelyOn = m.LiveEnabled ?? m.OnDisk;
+                bool isLive = m.LiveInstance != null;
+                bool supportsLive = m.LiveEnabled != null;
+
+                string stateCol = effectivelyOn ? "green" : "red";
+                string stateText = effectivelyOn ? "ON" : "OFF";
+                string suffix = isLive && !supportsLive ? " <color=grey>(?)</color>" : "";
+
+                string tip = isLive
+                    ? (supportsLive ? $"{m.Name} supports live toggling. Currently {stateText}." : $"{m.Name} is loaded but has no Enabled property — will use disk toggle + restart.")
+                    : (effectivelyOn ? $"{m.Name} is enabled on disk." : $"{m.Name} is disabled. Select to re-enable.");
+
+                buttons.Add(new ModButtonInfo
+                {
+                    buttonText = $"<color={stateCol}>[{stateText}]</color> {m.Name}{suffix}",
+                    toolTip = tip,
+                    method = () => ToggleInstalledMod(m, !effectivelyOn)
+                });
+            }
+
+            Api.Instance.tokenListButtonInfo["9"] = buttons;
+        }
+
+        private void ToggleInstalledMod(InstalledMod mod, bool enable)
+        {
+            bool handledLive = false;
+
+            if (mod.LiveInstance != null)
+            {
+                var type = mod.LiveInstance.GetType();
+
+                var prop = type.GetProperty("Enabled", BindingFlags.Public | BindingFlags.Instance);
+                if (prop?.CanWrite == true)
+                {
+                    try { prop.SetValue(mod.LiveInstance, enable); handledLive = true; }
+                    catch (Exception ex) { UnityEngine.Debug.LogError("[Several Bees] Enabled prop: " + ex.Message); }
+                }
+
+                if (!handledLive)
+                {
+                    var method = type.GetMethod(enable ? "Enable" : "Disable", BindingFlags.Public | BindingFlags.Instance, null, Type.EmptyTypes, null);
+                    if (method != null)
+                    {
+                        try { method.Invoke(mod.LiveInstance, null); handledLive = true; }
+                        catch (Exception ex) { UnityEngine.Debug.LogError("[Several Bees] Enable/Disable method: " + ex.Message); }
+                    }
+                }
+
+                if (!handledLive)
+                {
+                    mod.LiveInstance.gameObject.SetActive(enable);
+                    handledLive = true;
+                }
+            }
+
             try
             {
-                byte[] raw = File.ReadAllBytes(dllPath);
-                Assembly loaded = Assembly.Load(raw);
-
-                foreach (Type type in loaded.GetTypes())
+                if (enable && !mod.OnDisk)
                 {
-                    if (!typeof(BaseUnityPlugin).IsAssignableFrom(type)) continue;
-                    if (type.IsAbstract) continue;
-
-                    var meta = type.GetCustomAttributes(typeof(BepInPlugin), true).FirstOrDefault() as BepInPlugin;
-                    if (meta == null) continue;
-
-                    GameObject go = new GameObject(meta.GUID);
-                    UnityEngine.Object.DontDestroyOnLoad(go);
-
-                    BaseUnityPlugin plugin = (BaseUnityPlugin)go.AddComponent(type);
-
-                    PluginInfo info = new PluginInfo();
-                    typeof(PluginInfo).GetProperty("Metadata")?.SetValue(info, meta);
-                    typeof(PluginInfo).GetProperty("Instance")?.SetValue(info, plugin);
-
-                    typeof(BaseUnityPlugin).GetProperty("Info", BindingFlags.NonPublic | BindingFlags.Instance)?.SetValue(plugin, info);
+                    string dest = mod.Path.Replace(".dll.disabled", ".dll");
+                    if (File.Exists(dest)) File.Delete(dest);
+                    File.Move(mod.Path, dest);
                 }
-
-                Api.Instance.tokenListButtonInfo[ModLink] = new List<ModButtonInfo>
+                else if (!enable && mod.OnDisk)
                 {
-                    new ModButtonInfo { buttonText = "<color=green>Installed</color>", toolTip = "Mod fully installed" },
-                    new ModButtonInfo { buttonText = "<color=green>Loaded</color>", toolTip = "Mod fully loaded" }
-                };
+                    string dest = mod.Path + ".disabled";
+                    if (File.Exists(dest)) File.Delete(dest);
+                    File.Move(mod.Path, dest);
+                }
+            }
+            catch (Exception ex)
+            {
+                UnityEngine.Debug.LogError("[Several Bees] Disk toggle: " + ex.Message);
+            }
+
+            if (!handledLive && Api.Instance.GrabButton("8", "Restart On Mod").enabled)
+                RestartApp();
+
+            RefreshInstalledMods();
+        }
+
+        private async void SaveModVersionAsync(string modLink)
+        {
+            try
+            {
+                string tag = await ModBrowser.Instance.GetGitHubTagAsync(modLink);
+                PlayerPrefs.SetString("SBModVer_" + modLink, tag);
             }
             catch { }
         }
 
-        internal void UninstallMod(string ModName, string ModLink)
+        internal void OpenCodeModPage(string modName, string modLink)
         {
-            Api.Instance.tokenListButtonInfo[ModLink] = new List<ModButtonInfo> { new ModButtonInfo { buttonText = "<color=orange>" + "Uninstalling..." + "</color>", toolTip = "Please wait.." } };
-            string dllPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "BepInEx", "plugins", ModName + ".dll");
-            if (!File.Exists(dllPath))
+            string pluginsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "BepInEx", "plugins");
+            string dllPath = Path.Combine(pluginsPath, modName + ".dll");
+            string disabledPath = dllPath + ".disabled";
+
+            bool installed = File.Exists(dllPath);
+            bool disabled = !installed && File.Exists(disabledPath);
+            bool hasUpdate = modUpdateAvailable.Contains(modLink);
+
+            var buttons = new List<ModButtonInfo>();
+
+            if (hasUpdate)
+                buttons.Add(new ModButtonInfo { buttonText = "<color=red>(!) Update Available</color>", toolTip = "A newer version is available. Use Install Latest to update.", method = () => InstallLatestMod(modLink, modName) });
+
+            if (installed)
             {
-                Api.Instance.tokenListButtonInfo[ModLink] = new List<ModButtonInfo> { new ModButtonInfo { buttonText = "<color=red>" + "Mod Not Found." + "</color>", toolTip = "Please wait.." } };
-                return;
+                buttons.Add(new ModButtonInfo { buttonText = "<color=yellow>Disable</color>", toolTip = $"Disables {modName} (restart required).", method = () => ToggleMod(modName, modLink, false) });
+                buttons.Add(new ModButtonInfo { buttonText = "<color=orange>Install Latest</color>", toolTip = $"Updates {modName} to the latest version.", method = () => InstallLatestMod(modLink, modName) });
+                buttons.Add(new ModButtonInfo { buttonText = "<color=red>Uninstall</color>", toolTip = $"Removes {modName}.", method = () => UninstallMod(modName, modLink) });
+            }
+            else if (disabled)
+            {
+                buttons.Add(new ModButtonInfo { buttonText = "<color=green>Enable</color>", toolTip = $"Re-enables {modName} (restart required).", method = () => ToggleMod(modName, modLink, true) });
+                buttons.Add(new ModButtonInfo { buttonText = "<color=red>Uninstall</color>", toolTip = $"Fully removes the disabled {modName}.", method = () => UninstallMod(modName, modLink) });
+            }
+            else
+            {
+                buttons.Add(new ModButtonInfo { buttonText = "<color=green>Install</color>", toolTip = $"Installs {modName}.", method = () => InstallMod(modLink, modName) });
+                buttons.Add(new ModButtonInfo { buttonText = "<color=green>Install & Inject</color>", toolTip = $"Installs and hot-loads {modName}.", method = () => InstallModAndInject(modLink, modName) });
             }
 
-            string deletePath = dllPath + ".delete";
-            if (File.Exists(deletePath)) File.Delete(deletePath);
-            File.Move(dllPath, deletePath);
+            buttons.Add(new ModButtonInfo
+            {
+                buttonText = "Open GitHub",
+                toolTip = $"Opens the GitHub for {modName}.",
+                method = () =>
+                {
+                    string link = modLink;
+                    int idx = link.IndexOf("/releases/");
+                    if (idx != -1) link = link.Substring(0, idx);
+                    Process.Start(new ProcessStartInfo { FileName = link, UseShellExecute = true });
+                }
+            });
 
-            Api.Instance.tokenListButtonInfo[ModLink] = new List<ModButtonInfo> { new ModButtonInfo { buttonText = "<color=green>" + "Uninstall Complete" + "</color>", toolTip = "Please wait.." } };
-
-            if (!Api.Instance.GrabButton("8", "Restart On Mod").enabled) return;
-
-            Api.Instance.tokenListButtonInfo[ModLink] = new List<ModButtonInfo> { new ModButtonInfo { buttonText = "<color=orange>" + "Restarting game..." + "</color>", toolTip = "Please wait.." } };
-
-            RestartApp();
+            Api.Instance.tokenList[modName] = modLink;
+            if (!Api.Instance.tokenListVisable.ContainsKey(modLink)) Api.Instance.tokenListVisable[modLink] = false;
+            if (!Api.Instance.tokenListBackToken.ContainsKey(modLink)) Api.Instance.tokenListBackToken[modLink] = "5";
+            Api.Instance.tokenListButtonInfo[modLink] = buttons;
+            Api.Instance.OpenMenu(modLink);
         }
 
-        internal void InstallLatestMod(string ModLink, string ModName)
+        #endregion
+
+        #region Mod Install / Toggle / Uninstall
+
+        internal void ToggleMod(string modName, string modLink, bool enable)
         {
-            Api.Instance.tokenListButtonInfo[ModLink] = new List<ModButtonInfo> { new ModButtonInfo { buttonText = "<color=orange>" + "Uninstalling..." + "</color>", toolTip = "Please wait.." } };
-            string dllPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "BepInEx", "plugins", ModName + ".dll");
-            if (!File.Exists(dllPath))
+            string dllPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "BepInEx", "plugins", modName + ".dll");
+            string disabledPath = dllPath + ".disabled";
+
+            try
             {
-                Api.Instance.tokenListButtonInfo[ModLink] = new List<ModButtonInfo> { new ModButtonInfo { buttonText = "<color=red>" + "Mod Not Found." + "</color>", toolTip = "Please wait.." } };
-                return;
+                if (enable && File.Exists(disabledPath))
+                {
+                    if (File.Exists(dllPath)) File.Delete(dllPath);
+                    File.Move(disabledPath, dllPath);
+                    Api.Instance.tokenListButtonInfo[modLink] = new List<ModButtonInfo> { new ModButtonInfo { buttonText = "<color=green>Enabled</color>", toolTip = "Restart to apply." } };
+                }
+                else if (!enable && File.Exists(dllPath))
+                {
+                    if (File.Exists(disabledPath)) File.Delete(disabledPath);
+                    File.Move(dllPath, disabledPath);
+                    Api.Instance.tokenListButtonInfo[modLink] = new List<ModButtonInfo> { new ModButtonInfo { buttonText = "<color=yellow>Disabled</color>", toolTip = "Restart to apply." } };
+                }
+
+                if (Api.Instance.GrabButton("8", "Restart On Mod").enabled) RestartApp();
             }
+            catch (Exception ex)
+            {
+                UnityEngine.Debug.LogError("[Several Bees] Toggle error: " + ex.Message);
+            }
+        }
 
-            string deletePath = dllPath + ".delete";
-            if (File.Exists(deletePath)) File.Delete(deletePath);
-            File.Move(dllPath, deletePath);
-
-            Api.Instance.tokenListButtonInfo[ModLink] = new List<ModButtonInfo> { new ModButtonInfo { buttonText = "<color=green>" + "Uninstall Complete" + "</color>", toolTip = "Please wait.." } };
-
+        internal void InstallMod(string modLink, string modName)
+        {
             string pluginsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "BepInEx", "plugins");
             if (!Directory.Exists(pluginsPath)) Directory.CreateDirectory(pluginsPath);
 
-            string tempFile = Path.Combine(Path.GetTempPath(), ModName + ".dll");
+            string tempFile = Path.Combine(Path.GetTempPath(), modName + ".dll");
 
             using (var client = new System.Net.WebClient())
             {
-                client.DownloadProgressChanged += (s, e) => Api.Instance.tokenListButtonInfo[ModLink] = new List<ModButtonInfo> { new ModButtonInfo { buttonText = "<color=orange>Installing... " + e.ProgressPercentage + "%</color>", toolTip = "Please wait.." } };
-                client.DownloadFileCompleted += (s, e) => Api.Instance.tokenListButtonInfo[ModLink] = new List<ModButtonInfo> { new ModButtonInfo { buttonText = "<color=green>" + "Install Complete" + "</color>", toolTip = "Please wait.." } };
-                client.DownloadFileAsync(new Uri(ModLink), tempFile);
+                client.DownloadProgressChanged += (s, e) => Api.Instance.tokenListButtonInfo[modLink] = new List<ModButtonInfo> { new ModButtonInfo { buttonText = $"<color=orange>Installing... {e.ProgressPercentage}%</color>", toolTip = "" } };
+                client.DownloadFileCompleted += (s, e) => Api.Instance.tokenListButtonInfo[modLink] = new List<ModButtonInfo> { new ModButtonInfo { buttonText = "<color=green>Install Complete</color>", toolTip = "" } };
+                client.DownloadFileAsync(new Uri(modLink), tempFile);
                 while (client.IsBusy) Thread.Sleep(100);
             }
 
-            string destFile = Path.Combine(pluginsPath, ModName + ".dll");
-            if (File.Exists(destFile)) File.Delete(destFile);
-            File.Move(tempFile, destFile);
+            string dest = Path.Combine(pluginsPath, modName + ".dll");
+            if (File.Exists(dest)) File.Delete(dest);
+            File.Move(tempFile, dest);
+
+            SaveModVersionAsync(modLink);
+            modUpdateAvailable.Remove(modLink);
+            RebuildModBrowserButtons();
 
             if (!Api.Instance.GrabButton("8", "Restart On Mod").enabled) return;
-
-            Api.Instance.tokenListButtonInfo[ModLink] = new List<ModButtonInfo> { new ModButtonInfo { buttonText = "<color=orange>" + "Restarting game..." + "</color>", toolTip = "Please wait.." } };
+            Api.Instance.tokenListButtonInfo[modLink] = new List<ModButtonInfo> { new ModButtonInfo { buttonText = "<color=orange>Restarting...</color>", toolTip = "" } };
             RestartApp();
         }
 
-        internal void RestartApp()
+        internal void InstallModAndInject(string modLink, string modName)
         {
-            string configDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "BepInEx", "config");
-            if (!Directory.Exists(configDir)) Directory.CreateDirectory(configDir);
+            string pluginsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "BepInEx", "plugins");
+            if (!Directory.Exists(pluginsPath)) Directory.CreateDirectory(pluginsPath);
 
-            string restartScript = $@"@echo off
-title Several Bees - Restarting...
-echo Restarting, please wait...
-echo.
+            string dllPath = Path.Combine(pluginsPath, modName + ".dll");
+            if (File.Exists(dllPath)) File.Delete(dllPath);
 
-:WAIT_LOOP
-tasklist /FI ""IMAGENAME eq {Path.GetFileName(Process.GetCurrentProcess().MainModule.FileName)}"" | find /I ""{Path.GetFileName(Process.GetCurrentProcess().MainModule.FileName)}"" >nul
-if %ERRORLEVEL%==0 (
-    timeout /t 1 >nul
-    goto WAIT_LOOP
-)
+            Api.Instance.tokenListButtonInfo[modLink] = new List<ModButtonInfo> { new ModButtonInfo { buttonText = "<color=orange>Installing...</color>", toolTip = "" } };
 
-start steam://run/{Config.SteamAppId}
-exit";
+            using (var client = new System.Net.WebClient())
+            {
+                client.DownloadFileAsync(new Uri(modLink), dllPath);
+                while (client.IsBusy) Thread.Sleep(100);
+            }
 
-            string fileName = Path.Combine(configDir, "sb_restart.bat");
-            File.WriteAllText(fileName, restartScript);
+            Api.Instance.tokenListButtonInfo[modLink] = new List<ModButtonInfo>
+            {
+                new ModButtonInfo { buttonText = "<color=green>Installed</color>",       toolTip = "" },
+                new ModButtonInfo { buttonText = "<color=orange>Loading...</color>",     toolTip = "" }
+            };
 
-            Process.Start(fileName);
-            Application.Quit();
+            TryInjectAssembly(dllPath);
+
+            Api.Instance.tokenListButtonInfo[modLink] = new List<ModButtonInfo>
+            {
+                new ModButtonInfo { buttonText = "<color=green>Installed</color>", toolTip = "" },
+                new ModButtonInfo { buttonText = "<color=green>Loaded</color>",    toolTip = "" }
+            };
+
+            SaveModVersionAsync(modLink);
+            modUpdateAvailable.Remove(modLink);
+            RebuildModBrowserButtons();
         }
 
-        private float lastSpawnTime;
+        internal void UninstallMod(string modName, string modLink)
+        {
+            Api.Instance.tokenListButtonInfo[modLink] = new List<ModButtonInfo> { new ModButtonInfo { buttonText = "<color=orange>Uninstalling...</color>", toolTip = "" } };
+
+            string basePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "BepInEx", "plugins");
+            string dllPath = Path.Combine(basePath, modName + ".dll");
+            string disabledPath = dllPath + ".disabled";
+
+            string target = File.Exists(dllPath) ? dllPath : File.Exists(disabledPath) ? disabledPath : null;
+            if (target == null)
+            {
+                Api.Instance.tokenListButtonInfo[modLink] = new List<ModButtonInfo> { new ModButtonInfo { buttonText = "<color=red>Not Found</color>", toolTip = "" } };
+                return;
+            }
+
+            string deletePath = target + ".delete";
+            if (File.Exists(deletePath)) File.Delete(deletePath);
+            File.Move(target, deletePath);
+
+            Api.Instance.tokenListButtonInfo[modLink] = new List<ModButtonInfo> { new ModButtonInfo { buttonText = "<color=green>Uninstalled</color>", toolTip = "" } };
+
+            PlayerPrefs.DeleteKey("SBModVer_" + modLink);
+            modUpdateAvailable.Remove(modLink);
+            RebuildModBrowserButtons();
+
+            if (!Api.Instance.GrabButton("8", "Restart On Mod").enabled) return;
+            Api.Instance.tokenListButtonInfo[modLink] = new List<ModButtonInfo> { new ModButtonInfo { buttonText = "<color=orange>Restarting...</color>", toolTip = "" } };
+            RestartApp();
+        }
+
+        internal void InstallLatestMod(string modLink, string modName)
+        {
+            string pluginsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "BepInEx", "plugins");
+            string dllPath = Path.Combine(pluginsPath, modName + ".dll");
+
+            if (!File.Exists(dllPath))
+            {
+                Api.Instance.tokenListButtonInfo[modLink] = new List<ModButtonInfo> { new ModButtonInfo { buttonText = "<color=red>Not Found</color>", toolTip = "" } };
+                return;
+            }
+
+            string deletePath = dllPath + ".delete";
+            if (File.Exists(deletePath)) File.Delete(deletePath);
+            File.Move(dllPath, deletePath);
+
+            if (!Directory.Exists(pluginsPath)) Directory.CreateDirectory(pluginsPath);
+
+            string tempFile = Path.Combine(Path.GetTempPath(), modName + ".dll");
+
+            using (var client = new System.Net.WebClient())
+            {
+                client.DownloadProgressChanged += (s, e) => Api.Instance.tokenListButtonInfo[modLink] = new List<ModButtonInfo> { new ModButtonInfo { buttonText = $"<color=orange>Installing... {e.ProgressPercentage}%</color>", toolTip = "" } };
+                client.DownloadFileCompleted += (s, e) => Api.Instance.tokenListButtonInfo[modLink] = new List<ModButtonInfo> { new ModButtonInfo { buttonText = "<color=green>Install Complete</color>", toolTip = "" } };
+                client.DownloadFileAsync(new Uri(modLink), tempFile);
+                while (client.IsBusy) Thread.Sleep(100);
+            }
+
+            string dest = Path.Combine(pluginsPath, modName + ".dll");
+            if (File.Exists(dest)) File.Delete(dest);
+            File.Move(tempFile, dest);
+
+            SaveModVersionAsync(modLink);
+            modUpdateAvailable.Remove(modLink);
+            RebuildModBrowserButtons();
+
+            if (!Api.Instance.GrabButton("8", "Restart On Mod").enabled) return;
+            Api.Instance.tokenListButtonInfo[modLink] = new List<ModButtonInfo> { new ModButtonInfo { buttonText = "<color=orange>Restarting...</color>", toolTip = "" } };
+            RestartApp();
+        }
+
+        #endregion
+
+        #region Loadouts
+
+        private string LoadoutsFilePath => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "BepInEx", "config", "sb_loadouts.json");
+
+        private List<ModLoadout> ReadLoadouts()
+        {
+            try
+            {
+                if (!File.Exists(LoadoutsFilePath)) return new List<ModLoadout>();
+                return ParseLoadoutsJson(File.ReadAllText(LoadoutsFilePath));
+            }
+            catch { return new List<ModLoadout>(); }
+        }
+
+        private void WriteLoadouts(List<ModLoadout> loadouts)
+        {
+            try
+            {
+                var sb = new System.Text.StringBuilder();
+                sb.Append("[");
+                for (int i = 0; i < loadouts.Count; i++)
+                {
+                    var l = loadouts[i];
+                    sb.Append("{");
+                    sb.Append($"\"Number\":{l.Number},");
+                    sb.Append($"\"EnabledMods\":[{string.Join(",", l.EnabledMods.Select(m => $"\"{EscapeJson(m)}\""))}],");
+                    sb.Append($"\"DisabledMods\":[{string.Join(",", l.DisabledMods.Select(m => $"\"{EscapeJson(m)}\""))}],");
+                    sb.Append($"\"MissingMods\":[{string.Join(",", l.MissingMods.Select(m => $"\"{EscapeJson(m)}\""))}]");
+                    sb.Append("}");
+                    if (i < loadouts.Count - 1) sb.Append(",");
+                }
+                sb.Append("]");
+
+                string dir = Path.GetDirectoryName(LoadoutsFilePath);
+                if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+                File.WriteAllText(LoadoutsFilePath, sb.ToString());
+            }
+            catch (Exception ex)
+            {
+                UnityEngine.Debug.LogError("[Several Bees] Loadout write error: " + ex.Message);
+            }
+        }
+
+        private List<ModLoadout> ParseLoadoutsJson(string json)
+        {
+            var result = new List<ModLoadout>();
+            json = json.Trim();
+            if (!json.StartsWith("[")) return result;
+
+            int depth = 0;
+            int objStart = -1;
+            var objects = new List<string>();
+
+            for (int i = 0; i < json.Length; i++)
+            {
+                if (json[i] == '{') { if (depth == 0) objStart = i; depth++; }
+                else if (json[i] == '}') { depth--; if (depth == 0 && objStart >= 0) { objects.Add(json.Substring(objStart, i - objStart + 1)); objStart = -1; } }
+            }
+
+            foreach (var obj in objects)
+            {
+                var loadout = new ModLoadout();
+                loadout.Number = ParseJsonInt(obj, "Number");
+                loadout.EnabledMods = ParseJsonStringArray(obj, "EnabledMods");
+                loadout.DisabledMods = ParseJsonStringArray(obj, "DisabledMods");
+                loadout.MissingMods = ParseJsonStringArray(obj, "MissingMods");
+                result.Add(loadout);
+            }
+
+            return result;
+        }
+
+        private int ParseJsonInt(string json, string key)
+        {
+            string search = $"\"{key}\":";
+            int idx = json.IndexOf(search);
+            if (idx < 0) return 0;
+            int start = idx + search.Length;
+            int end = start;
+            while (end < json.Length && (char.IsDigit(json[end]) || json[end] == '-')) end++;
+            int.TryParse(json.Substring(start, end - start), out int val);
+            return val;
+        }
+
+        private List<string> ParseJsonStringArray(string json, string key)
+        {
+            var result = new List<string>();
+            string search = $"\"{key}\":[";
+            int idx = json.IndexOf(search);
+            if (idx < 0) return result;
+
+            int start = idx + search.Length;
+            int end = json.IndexOf("]", start);
+            if (end < 0) return result;
+
+            string inner = json.Substring(start, end - start).Trim();
+            if (string.IsNullOrEmpty(inner)) return result;
+
+            bool inStr = false;
+            var cur = new System.Text.StringBuilder();
+            for (int i = 0; i < inner.Length; i++)
+            {
+                char c = inner[i];
+                if (c == '"' && (i == 0 || inner[i - 1] != '\\')) { inStr = !inStr; if (!inStr && cur.Length > 0) { result.Add(cur.ToString()); cur.Clear(); } continue; }
+                if (inStr) cur.Append(c);
+            }
+
+            return result;
+        }
+
+        private string EscapeJson(string s) => s.Replace("\\", "\\\\").Replace("\"", "\\\"");
+
+        internal void SaveCurrentLoadout()
+        {
+            var loadouts = ReadLoadouts();
+
+            if (loadouts.Count >= 20)
+            {
+                SetToolTip("<color=red>Loadout cap reached (20). Delete one first.</color>");
+                return;
+            }
+
+            string pluginsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "BepInEx", "plugins");
+
+            var enabled = new List<string>();
+            var disabled = new List<string>();
+
+            if (Directory.Exists(pluginsPath))
+            {
+                foreach (var f in Directory.GetFiles(pluginsPath, "*.dll"))
+                    enabled.Add(Path.GetFileNameWithoutExtension(f));
+
+                foreach (var f in Directory.GetFiles(pluginsPath, "*.dll.disabled"))
+                    disabled.Add(Path.GetFileNameWithoutExtension(f).Replace(".dll", ""));
+            }
+
+            int nextNum = loadouts.Count == 0 ? 1 : loadouts.Max(l => l.Number) + 1;
+
+            loadouts.Add(new ModLoadout
+            {
+                Number = nextNum,
+                EnabledMods = enabled,
+                DisabledMods = disabled,
+                MissingMods = new List<string>()
+            });
+
+            WriteLoadouts(loadouts);
+            SetToolTip($"<color=green>Loadout {nextNum} saved.</color>");
+            RefreshLoadoutsMenu();
+        }
+
+        internal void RefreshLoadoutsMenu()
+        {
+            var loadouts = ReadLoadouts();
+
+            var buttons = new List<ModButtonInfo>
+            {
+                new ModButtonInfo
+                {
+                    buttonText = loadouts.Count >= 20 ? "<color=grey>Save Loadout (Full)</color>" : "<color=green>Save Loadout</color>",
+                    toolTip = loadouts.Count >= 20 ? "At the 20 loadout cap. Delete one to save a new one." : "Snapshots your current mod state as a new loadout.",
+                    method = SaveCurrentLoadout
+                }
+            };
+
+            foreach (var loadout in loadouts.OrderBy(l => l.Number))
+            {
+                var l = loadout;
+                buttons.Add(new ModButtonInfo
+                {
+                    buttonText = $"Loadout {l.Number}",
+                    toolTip = $"{l.EnabledMods.Count} enabled, {l.DisabledMods.Count} disabled, {l.MissingMods.Count} missing.",
+                    method = () => OpenLoadoutPage(l)
+                });
+            }
+
+            Api.Instance.tokenListButtonInfo["10"] = buttons;
+        }
+
+        internal void OpenLoadoutPage(ModLoadout loadout)
+        {
+            string token = $"loadout_{loadout.Number}";
+
+            if (!Api.Instance.tokenListVisable.ContainsKey(token)) Api.Instance.tokenListVisable[token] = false;
+            if (!Api.Instance.tokenListBackToken.ContainsKey(token)) Api.Instance.tokenListBackToken[token] = "10";
+
+            var buttons = new List<ModButtonInfo>
+            {
+                new ModButtonInfo
+                {
+                    buttonText = "<color=green>Enable & Restart</color>",
+                    toolTip = "Applies this loadout and restarts the game.",
+                    method = () => ApplyLoadout(loadout)
+                },
+                new ModButtonInfo
+                {
+                    buttonText = "View Mods",
+                    toolTip = $"Shows the mods in this loadout.",
+                    method = () => OpenLoadoutModList(loadout)
+                },
+                new ModButtonInfo
+                {
+                    buttonText = "<color=red>Delete Loadout</color>",
+                    toolTip = $"Permanently deletes Loadout {loadout.Number}.",
+                    method = () =>
+                    {
+                        var all = ReadLoadouts();
+                        all.RemoveAll(l => l.Number == loadout.Number);
+                        WriteLoadouts(all);
+                        SetToolTip($"<color=red>Loadout {loadout.Number} deleted.</color>");
+                        Api.Instance.OpenMenu("10");
+                        RefreshLoadoutsMenu();
+                    }
+                }
+            };
+
+            Api.Instance.tokenListButtonInfo[token] = buttons;
+            Api.Instance.tokenList[$"Loadout {loadout.Number}"] = token;
+            Api.Instance.OpenMenu(token);
+        }
+
+        internal void OpenLoadoutModList(ModLoadout loadout)
+        {
+            string token = $"loadout_{loadout.Number}_mods";
+
+            if (!Api.Instance.tokenListVisable.ContainsKey(token)) Api.Instance.tokenListVisable[token] = false;
+            if (!Api.Instance.tokenListBackToken.ContainsKey(token)) Api.Instance.tokenListBackToken[token] = $"loadout_{loadout.Number}";
+
+            var buttons = new List<ModButtonInfo>();
+
+            foreach (var m in loadout.EnabledMods)
+                buttons.Add(new ModButtonInfo { buttonText = $"<color=green>[ON]</color> {m}", toolTip = "Enabled in this loadout." });
+
+            foreach (var m in loadout.DisabledMods)
+                buttons.Add(new ModButtonInfo { buttonText = $"<color=red>[OFF]</color> {m}", toolTip = "Disabled in this loadout." });
+
+            foreach (var m in loadout.MissingMods)
+                buttons.Add(new ModButtonInfo { buttonText = $"<color=grey>[MISSING]</color> {m}", toolTip = "Was in loadout but no longer found on disk." });
+
+            if (buttons.Count == 0)
+                buttons.Add(new ModButtonInfo { buttonText = "<color=grey>No mods recorded.</color>", toolTip = "" });
+
+            Api.Instance.tokenListButtonInfo[token] = buttons;
+            Api.Instance.tokenList[$"Loadout {loadout.Number} Mods"] = token;
+            Api.Instance.OpenMenu(token);
+        }
+
+        internal void ApplyLoadout(ModLoadout loadout)
+        {
+            string pluginsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "BepInEx", "plugins");
+            if (!Directory.Exists(pluginsPath)) Directory.CreateDirectory(pluginsPath);
+
+            var allDlls = Directory.GetFiles(pluginsPath, "*.dll")
+                .Select(f => Path.GetFileNameWithoutExtension(f))
+                .ToList();
+
+            var allDisabled = Directory.GetFiles(pluginsPath, "*.dll.disabled")
+                .Select(f => Path.GetFileNameWithoutExtension(f).Replace(".dll", ""))
+                .ToList();
+
+            var allKnown = new HashSet<string>(allDlls.Concat(allDisabled), StringComparer.OrdinalIgnoreCase);
+
+            var updatedLoadout = new ModLoadout
+            {
+                Number = loadout.Number,
+                EnabledMods = new List<string>(loadout.EnabledMods),
+                DisabledMods = new List<string>(loadout.DisabledMods),
+                MissingMods = new List<string>(loadout.MissingMods)
+            };
+
+            foreach (var name in loadout.EnabledMods)
+            {
+                string dll = Path.Combine(pluginsPath, name + ".dll");
+                string dis = dll + ".disabled";
+
+                if (File.Exists(dis))
+                {
+                    try { if (File.Exists(dll)) File.Delete(dll); File.Move(dis, dll); }
+                    catch (Exception ex) { UnityEngine.Debug.LogError("[Several Bees] Loadout enable " + name + ": " + ex.Message); }
+                }
+                else if (!File.Exists(dll))
+                {
+                    if (!updatedLoadout.MissingMods.Contains(name))
+                        updatedLoadout.MissingMods.Add(name);
+                    updatedLoadout.EnabledMods.Remove(name);
+                }
+            }
+
+            foreach (var name in loadout.DisabledMods)
+            {
+                string dll = Path.Combine(pluginsPath, name + ".dll");
+                string dis = dll + ".disabled";
+
+                if (File.Exists(dll))
+                {
+                    try { if (File.Exists(dis)) File.Delete(dis); File.Move(dll, dis); }
+                    catch (Exception ex) { UnityEngine.Debug.LogError("[Several Bees] Loadout disable " + name + ": " + ex.Message); }
+                }
+                else if (!File.Exists(dis))
+                {
+                    if (!updatedLoadout.MissingMods.Contains(name))
+                        updatedLoadout.MissingMods.Add(name);
+                    updatedLoadout.DisabledMods.Remove(name);
+                }
+            }
+
+            var all = ReadLoadouts();
+            int idx = all.FindIndex(l => l.Number == loadout.Number);
+            if (idx >= 0) all[idx] = updatedLoadout;
+            WriteLoadouts(all);
+
+            RestartApp();
+        }
+
+        #endregion
+
+        #region Machine Spawn
+
         internal void SpawnMachineAtPlayer()
         {
-            bool ShoudExist = false;
-            Vector3 RelPosMach = Config.machineRelSpawn();
-            foreach (GameObject objthingponr in ModMangerDistanceIndicators)
-            {
-                ShoudExist = Vector3.Distance(RelPosMach, objthingponr.transform.position) > Config.machineSpawnClearance;
-            }
-            if (!ShoudExist) return;
+            Vector3 spawnPos = Config.machineRelSpawn();
+            foreach (GameObject obj in ModMangerDistanceIndicators)
+                if (Vector3.Distance(spawnPos, obj.transform.position) <= Config.machineSpawnClearance) return;
 
             if (Time.time - lastSpawnTime < 2f) return;
             lastSpawnTime = Time.time;
 
             PlaySound("https://github.com/sevvy-wevvy/Several-Bees/raw/refs/heads/main/Resources/Mod/open.wav");
 
-            GameObject machine = InstanceModManger();
-            machine.transform.position = RelPosMach;
+            var machine = InstanceModManger();
+            machine.transform.position = spawnPos;
             machine.transform.LookAt(Config.BodyReference());
             machine.transform.Rotate(0, 180, 0);
             machine.AddComponent<MachineDespawn>().DespawnDistance = Config.MachineDespawnDistance;
@@ -1238,269 +1848,172 @@ exit";
 
         private IEnumerator MachineAnn(GameObject machine)
         {
-            Vector3 OgScale = machine.transform.localScale;
+            Vector3 og = machine.transform.localScale;
+            Vector3 over = og * 1.1f;
             machine.transform.localScale = Vector3.zero;
 
-            float time = 0f;
-            float duration = 0.25f;
-            Vector3 overshootScale = OgScale * 1.1f;
-
-            while (time < duration)
+            float t = 0f;
+            while (t < 0.25f)
             {
-                time += Time.deltaTime;
-                float t = time / duration;
-                t = Mathf.Sin(t * Mathf.PI * 0.5f);
-                machine.transform.localScale = Vector3.Lerp(Vector3.zero, overshootScale, t);
+                t += Time.deltaTime;
+                machine.transform.localScale = Vector3.Lerp(Vector3.zero, over, Mathf.Sin((t / 0.25f) * Mathf.PI * 0.5f));
                 yield return null;
             }
 
-            time = 0f;
-            duration = 0.1f;
-
-            while (time < duration)
+            t = 0f;
+            while (t < 0.1f)
             {
-                time += Time.deltaTime;
-                float t = time / duration;
-                machine.transform.localScale = Vector3.Lerp(overshootScale, OgScale, t);
+                t += Time.deltaTime;
+                machine.transform.localScale = Vector3.Lerp(over, og, t / 0.1f);
                 yield return null;
             }
 
-            machine.transform.localScale = OgScale;
+            machine.transform.localScale = og;
         }
 
-        internal List<Things> GetThings()
+        #endregion
+
+        #region Utility
+
+        internal void ListError(string error)
         {
-            List<Things> things = new List<Things>();
-
-            if (SectionName == "Main")
-            {
-                foreach (var key in Api.Instance.tokenList)
-                {
-                    if (Api.Instance.tokenListVisable[key.Value] == true) things.Add(new Things { Name = key.Key, Enterable = true, Token = key.Value });
-                }
-            }
-            else if (SectionName == "NotNew")
-            {
-                foreach (ModButtonInfo mbi in Api.Instance.tokenListButtonInfo[SectionName])
-                {
-                    string ButtonName = mbi.buttonText;
-                    if (mbi.isTogglable)
-                    {
-                        if (mbi.enabled)
-                        {
-                            ButtonName = "<color=green>" + ButtonName + " [ON]</color>";
-                        }
-                        else
-                        {
-                            ButtonName = "<color=red>" + ButtonName + " [OFF]</color>";
-                        }
-                    }
-                    things.Add(new Things { Name = ButtonName, Enterable = false, Token = SectionName, mbi = mbi });
-                }
-            }
-            else
-            {
-                string backTarget = "Main";
-                try
-                {
-                    backTarget = Api.Instance.tokenListBackToken[SectionName];
-                }
-                catch (Exception e)
-                {
-                    ListError("Error in Getting Back Target Token: " + e.Message + $" [{e.StackTrace}]");
-                }
-                if(!Api.Instance.GrabButton("8", "Physical Back Button").enabled) things.Add(new Things { Name = "<color=red>Back</color>", Enterable = true, Token = backTarget });
-
-                foreach (ModButtonInfo mbi in Api.Instance.tokenListButtonInfo[SectionName])
-                {
-                    string ButtonName = mbi.buttonText;
-                    if (mbi.isTogglable)
-                    {
-                        if (mbi.enabled)
-                        {
-                            ButtonName = "<color=green>" + ButtonName + " [ON]</color>";
-                        }
-                        else
-                        {
-                            ButtonName = "<color=red>" + ButtonName + " [OFF]</color>";
-                        }
-                    }
-                    things.Add(new Things { Name = ButtonName, Enterable = false, Token = SectionName, mbi = mbi });
-                }
-            }
-
-            return things;
+            if (ErrorParent == null) ErrorParent = new GameObject("Several Bees || Error Parent");
+            new GameObject("Several Bees |" + ErrorInt++ + "| " + error).transform.SetParent(ErrorParent.transform);
         }
 
-
-        private bool DownArrowPress = false;
-        private bool UpArrowPress = false;
-        private bool EnterPress = false;
-        private bool TestModeDone = false;
-        private bool SpawnNewThingPress = false;
-        internal string TestMod1Token = "";
-        internal string TestMod2Token = "";
-        internal string TestMod3Token = "";
-
-        internal Color Theme1 = new Color(0.5f, 0f, 1f);
-        internal Color Theme2 = Color.black;
-        internal float ThemeFadeSpeed = 0.2f;
-
-        internal int PointerPositionIndex = 0;
-        private int MaxPointerPosition = 0;
-        internal string SectionName = "Main";
-        private bool GuiButtonPress = false;
-
-        private Vector3 previousLeftPos;
-        private Vector3 previousRightPos;
-
-        internal List<string> GetButtons()
+        internal AudioClip GetLoadedSound(string url)
         {
-            List<Things> things = GetThings();
-            return things.Select(t => t.Name).ToList();
+            try
+            {
+                if (string.IsNullOrEmpty(url)) return null;
+                Plugin.Instance.LoadedSounds.TryGetValue(url, out var clip);
+                return clip;
+            }
+            catch { return null; }
         }
 
-        private bool PBB = (PlayerPrefs.GetInt("SBPhysBackButton", 0) == 1 ? true : false);
+        internal void PlaySound(string url, float volume = 0.4f)
+        {
+            try
+            {
+                if (!Api.Instance.GrabButton("8", "Sound Effects").enabled) return;
+                var clip = GetLoadedSound(url);
+                if (clip == null) return;
+                var go = new GameObject("SB Sound Player");
+                var src = go.AddComponent<AudioSource>();
+                src.clip = clip;
+                src.volume = volume;
+                src.Play();
+                Destroy(go, clip.length);
+            }
+            catch { }
+        }
+
+        private static string StripHtml(string input)
+        {
+            if (string.IsNullOrEmpty(input)) return input;
+            var sb = new System.Text.StringBuilder();
+            bool inTag = false;
+            foreach (char c in input)
+            {
+                if (c == '<') { inTag = true; continue; }
+                if (c == '>') { inTag = false; continue; }
+                if (!inTag) sb.Append(c);
+            }
+            return sb.ToString().Trim();
+        }
+
+        internal void RestartApp()
+        {
+            string configDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "BepInEx", "config");
+            if (!Directory.Exists(configDir)) Directory.CreateDirectory(configDir);
+
+            string exe = Path.GetFileName(Process.GetCurrentProcess().MainModule.FileName);
+            string bat = $@"@echo off
+title Several Bees - Restarting...
+:WAIT
+tasklist /FI ""IMAGENAME eq {exe}"" | find /I ""{exe}"" >nul
+if %ERRORLEVEL%==0 (timeout /t 1 >nul && goto WAIT)
+start steam://run/{Config.SteamAppId}
+exit";
+
+            string batPath = Path.Combine(configDir, "sb_restart.bat");
+            File.WriteAllText(batPath, bat);
+            Process.Start(batPath);
+            Application.Quit();
+        }
+
+        #endregion
+
+        #region Update
+
         private void Update()
         {
             if (Api.Instance.GrabButton("8", "Physical Back Button").enabled != PBB)
             {
                 PBB = Api.Instance.GrabButton("8", "Physical Back Button").enabled;
-                if(PBB) PointerPositionIndex--;
-                else PointerPositionIndex++;
-            }
-            for (int i = ModMangerDistanceIndicators.Count - 1; i >= 0; i--)
-            {
-                if (ModMangerDistanceIndicators[i] == null) ModMangerDistanceIndicators.RemoveAt(i);
-            }
-            for (int i = ModMangerTextList.Count - 1; i >= 0; i--)
-            {
-                if (ModMangerTextList[i] == null) ModMangerTextList.RemoveAt(i);
+                PointerPositionIndex += PBB ? -1 : 1;
             }
 
-            if (UnityInput.Current.GetKey(KeyCode.M) && !SpawnNewThingPress)
-            {
-                SpawnMachineAtPlayer();
-                SpawnNewThingPress = true;
-            }
-            if(!UnityInput.Current.GetKey(KeyCode.M))
-            {
-                SpawnNewThingPress = false;
-            }
+            for (int i = ModMangerDistanceIndicators.Count - 1; i >= 0; i--)
+                if (ModMangerDistanceIndicators[i] == null) ModMangerDistanceIndicators.RemoveAt(i);
+
+            for (int i = ModMangerTextList.Count - 1; i >= 0; i--)
+                if (ModMangerTextList[i] == null) ModMangerTextList.RemoveAt(i);
+
+            if (UnityInput.Current.GetKey(KeyCode.M) && !SpawnNewThingPress) { SpawnMachineAtPlayer(); SpawnNewThingPress = true; }
+            if (!UnityInput.Current.GetKey(KeyCode.M)) SpawnNewThingPress = false;
 
             try
             {
-                // if you can figure out how to make this better PLEASE make a pull reqeust!
-                float distance = Vector3.Distance(Config.LeftHandReference().position, Config.RightHandReference().position);
-
-                if (distance < Config.gripThreshold * 1.25f && Config.RightGripDown() && Config.LeftGripDown() && Api.Instance.GrabButton("8", "Open Gesture").enabled)
+                float dist = Vector3.Distance(Config.LeftHandReference().position, Config.RightHandReference().position);
+                if (dist < Config.gripThreshold * 1.25f && Config.RightGripDown() && Config.LeftGripDown() && Api.Instance.GrabButton("8", "Open Gesture").enabled)
                 {
-                    float previousDistance = Vector3.Distance(previousLeftPos, previousRightPos);
-                    float distanceDelta = distance - previousDistance;
+                    float prevDist = Vector3.Distance(previousLeftPos, previousRightPos);
+                    Vector3 lv = (Config.LeftHandReference().position - previousLeftPos) / Mathf.Max(Time.deltaTime, 0.0001f);
+                    Vector3 rv = (Config.RightHandReference().position - previousRightPos) / Mathf.Max(Time.deltaTime, 0.0001f);
+                    float speed = Vector3.Dot((Config.RightHandReference().position - Config.LeftHandReference().position).normalized, rv - lv);
 
-                    Vector3 leftVelocity = (Config.LeftHandReference().position - previousLeftPos) / Mathf.Max(Time.deltaTime, 0.0001f);
-                    Vector3 rightVelocity = (Config.RightHandReference().position - previousRightPos) / Mathf.Max(Time.deltaTime, 0.0001f);
-
-                    Vector3 pullDir = (Config.RightHandReference().position - Config.LeftHandReference().position).normalized;
-                    float relativeSpeed = Vector3.Dot(pullDir, rightVelocity - leftVelocity);
-
-                    if (relativeSpeed > Config.pullSpeedThreshold * 0.6f && distanceDelta > Config.minPullDistance * 0.5f)
-                    {
+                    if (speed > Config.pullSpeedThreshold * 0.6f && (dist - prevDist) > Config.minPullDistance * 0.5f)
                         SpawnMachineAtPlayer();
-                        UnityEngine.Debug.Log("[Several Bees] Spawning New Machine");
-                    }
                 }
 
                 previousLeftPos = Vector3.Lerp(previousLeftPos, Config.LeftHandReference().position, 0.5f);
                 previousRightPos = Vector3.Lerp(previousRightPos, Config.RightHandReference().position, 0.5f);
             }
             catch { }
-            if (UnityInput.Current.GetKey(KeyCode.T) && UnityInput.Current.GetKey(KeyCode.E) && UnityInput.Current.GetKey(KeyCode.S))
-            {
-                TestMode = true;
-            }
 
-            bool TempPcActive = false;
-            foreach (GameObject objthingponr in ModMangerDistanceIndicators)
-            {
-                TempPcActive = Vector3.Distance(Config.BodyReference().position, objthingponr.transform.position) < Config.MaxKeyboardControllsDisctance;
-            }
-            PCControlActive = TempPcActive;
+            if (UnityInput.Current.GetKey(KeyCode.T) && UnityInput.Current.GetKey(KeyCode.E) && UnityInput.Current.GetKey(KeyCode.S))
+                TestMode = true;
+
+            bool pcActive = false;
+            foreach (var obj in ModMangerDistanceIndicators)
+                if (obj != null && Vector3.Distance(Config.BodyReference().position, obj.transform.position) < Config.MaxKeyboardControllsDisctance)
+                    pcActive = true;
+            PCControlActive = pcActive;
 
             if (Config.IsGui)
             {
-                if (UnityInput.Current.GetKey(KeyCode.BackQuote))
-                {
-                    if (GuiButtonPress == false)
-                    {
-                        ShowGUIMenu = !ShowGUIMenu;
-                        GuiButtonPress = true;
-                    }
-                }
-                if (!UnityInput.Current.GetKey(KeyCode.BackQuote))
-                {
-                    GuiButtonPress = false;
-                }
+                if (UnityInput.Current.GetKey(KeyCode.BackQuote) && !GuiButtonPress) { ShowGUIMenu = !ShowGUIMenu; GuiButtonPress = true; }
+                if (!UnityInput.Current.GetKey(KeyCode.BackQuote)) GuiButtonPress = false;
             }
 
             if (PCControlActive)
             {
-                if (UnityInput.Current.GetKey(KeyCode.DownArrow))
-                {
-                    if (DownArrowPress == false)
-                    {
-                        MmDown(false);
-                        DownArrowPress = true;
-                    }
-                }
-                if (!UnityInput.Current.GetKey(KeyCode.DownArrow))
-                {
-                    DownArrowPress = false;
-                }
+                if (UnityInput.Current.GetKey(KeyCode.DownArrow) && !DownArrowPress) { MmDown(false); DownArrowPress = true; }
+                if (!UnityInput.Current.GetKey(KeyCode.DownArrow)) DownArrowPress = false;
 
+                if (UnityInput.Current.GetKey(KeyCode.UpArrow) && !UpArrowPress) { MmUp(false); UpArrowPress = true; }
+                if (!UnityInput.Current.GetKey(KeyCode.UpArrow)) UpArrowPress = false;
 
-                if (UnityInput.Current.GetKey(KeyCode.UpArrow))
-                {
-                    if (UpArrowPress == false)
-                    {
-                        MmUp(false);
-                        UpArrowPress = true;
-                    }
-                }
-                if (!UnityInput.Current.GetKey(KeyCode.UpArrow))
-                {
-                    UpArrowPress = false;
-                }
-
-
-                if (UnityInput.Current.GetKey(KeyCode.Return))
-                {
-                    if (EnterPress == false)
-                    {
-                        MmSelect(false);
-                        EnterPress = true;
-                    }
-                }
-
-
-                if (UnityInput.Current.GetKey(KeyCode.RightArrow))
-                {
-                    if (EnterPress == false)
-                    {
-                        MmSelect(true);
-                        EnterPress = true;
-                    }
-                }
-                if (!UnityInput.Current.GetKey(KeyCode.RightArrow) && !UnityInput.Current.GetKey(KeyCode.Return))
-                {
-                    EnterPress = false;
-                }
+                bool ret = UnityInput.Current.GetKey(KeyCode.Return);
+                bool rgt = UnityInput.Current.GetKey(KeyCode.RightArrow);
+                if ((ret || rgt) && !EnterPress) { MmSelect(rgt); EnterPress = true; }
+                if (!ret && !rgt) EnterPress = false;
             }
 
-            if (!IsLatestVersion)
-            {
-                SectionName = "NotNew";
-            }
+            if (!IsLatestVersion) SectionName = "NotNew";
+            else if (!LoadedPlugins) SectionName = "LoadPlugins";
 
             if (TestMode && !TestModeDone)
             {
@@ -1508,197 +2021,129 @@ exit";
                 TestMod2Token = Api.Instance.GenerateToken("Test Mod 2");
                 TestMod3Token = Api.Instance.GenerateToken("Alot Of Stuff");
 
-                Api.Instance.SetButtonInfo(
-                    TestMod1Token,
-                    new List<ModButtonInfo>
-                    {
-                        new ModButtonInfo { buttonText = "Test1 in 1" }
-                    }
-                );
+                Api.Instance.SetButtonInfo(TestMod1Token, new List<ModButtonInfo> { new ModButtonInfo { buttonText = "Test1 in 1" } });
 
-                var buttons = new List<ModButtonInfo>
-                {
-                    new ModButtonInfo { buttonText = "Toggle", isTogglable = true }
-                };
-
-                for (int i = 1; i <= 300; i++)
-                {
-                    buttons.Add(new ModButtonInfo { buttonText = "Toggle " + i, isTogglable = true });
-                }
-
-                Api.Instance.SetButtonInfo(
-                    TestMod3Token,
-                    buttons
-                );
+                var btns = new List<ModButtonInfo> { new ModButtonInfo { buttonText = "Toggle", isTogglable = true } };
+                for (int i = 1; i <= 300; i++) btns.Add(new ModButtonInfo { buttonText = "Toggle " + i, isTogglable = true });
+                Api.Instance.SetButtonInfo(TestMod3Token, btns);
 
                 Config.IsGui = true;
-
-
                 TestModeDone = true;
             }
 
-            string TextForThings = "";
-
-            TextForThings = Extra.GradientText("Several Bees", Theme1, Theme2, ThemeFadeSpeed);
-            string SectionName2 = SectionName;
-            if (Api.Instance.tokenList.ContainsValue(SectionName)) SectionName2 = Api.Instance.tokenList.FirstOrDefault(kvp => kvp.Value == SectionName).Key;
-            TextForThings += $"\n<color=grey>---</color> <size=0.35>{SectionName2}</size> <color=grey>---</color>\n <size=0.3>";
-
-            int pointerindex = 0;
-            List<Things> things = GetThings();
-
-            int total = things.Count;
-            int windowSize = 4;
-            int startIndex = PointerPositionIndex - 3;
-            if (startIndex < 0) startIndex = 0;
-            if (startIndex + windowSize > total) startIndex = total - windowSize;
-            if (startIndex < 0) startIndex = 0;
-
-            if (startIndex > 0)
-            {
-                TextForThings += "\n</size><size=0.1>••••••</size><size=0.3>";
-            }
-
-            pointerindex = 0;
-            for (int i = startIndex; i < startIndex + windowSize && i < total; i++)
-            {
-                Things thing = things[i];
-                if(thing.mbi != null) if(thing.mbi.buttonOverlayText != null)
-                    {
-                        thing.Name = thing.mbi.buttonOverlayText;
-                    }
-                TextForThings += (i == PointerPositionIndex ? $"\n<color=#{ColorUtility.ToHtmlStringRGB(Theme1)}>> </color>" : "\n") + $"{thing.Name}";
-                pointerindex++;
-            }
-
-            if (startIndex + windowSize < total)
-            {
-                TextForThings += "\n</size><size=0.1>••••••</size><size=0.3>";
-            }
-
-            MaxPointerPosition = things.Count;
-            TextForThings += $"</size>";
-            if(!string.IsNullOrEmpty(ToolTipText))
-            {
-                TextForThings += $"\n \n<size=0.2>{ToolTipText}</size>";
-            }
-
-            foreach(TextMeshPro tmp in ModMangerTextList)
-            {
-                tmp.text = TextForThings;
-            }
+            BuildDisplayText();
 
             try
             {
                 foreach (string token in Api.Instance.tokenList.Values)
-                {
-                    foreach (ModButtonInfo mbi in Api.Instance.tokenListButtonInfo[token])
-                    {
-                        if(mbi.enabled && mbi.isTogglable)
-                        {
-                            mbi.method?.Invoke();
-                        }
-                    }
-                }
+                    foreach (var mbi in Api.Instance.tokenListButtonInfo[token])
+                        if (mbi.enabled && mbi.isTogglable) mbi.method?.Invoke();
             }
-            catch (Exception e)
-            {
-                ListError("Error in Update ModButtonInfo Check: " + e.Message + $" [{e.StackTrace}]");
-            }
+            catch (Exception e) { ListError("Update loop error: " + e.Message); }
         }
 
-        internal bool PCControlActive = false;
-        internal bool ShowGUIMenu = false;
+        private void BuildDisplayText()
+        {
+            string sectionLabel = SectionName;
+            if (Api.Instance.tokenList.ContainsValue(SectionName))
+                sectionLabel = Api.Instance.tokenList.FirstOrDefault(kv => kv.Value == SectionName).Key;
 
-        private GUIStyle gradientStyle;
-        private Vector2 scrollPosition;
-        private Rect menuRect = new Rect(10, 50, 400, 300);
-        private bool dragging = false;
-        private Vector2 dragOffset;
+            string text = Extra.GradientText("Several Bees", Theme1, Theme2, ThemeFadeSpeed)
+                        + $"\n<color=grey>---</color> <size=0.35>{sectionLabel}</size> <color=grey>---</color>\n <size=0.3>";
+
+            var things = GetThings();
+            int total = things.Count;
+            int window = 4;
+            int start = Mathf.Clamp(PointerPositionIndex - 3, 0, Mathf.Max(0, total - window));
+
+            if (start > 0) text += "\n</size><size=0.1>••••••</size><size=0.3>";
+
+            for (int i = start; i < start + window && i < total; i++)
+            {
+                var t = things[i];
+                if (t.mbi?.buttonOverlayText != null) t.Name = t.mbi.buttonOverlayText;
+                string ptr = i == PointerPositionIndex ? $"<color=#{ColorUtility.ToHtmlStringRGB(Theme1)}>> </color>" : "";
+                text += $"\n{ptr}{t.Name}";
+            }
+
+            if (start + window < total) text += "\n</size><size=0.1>••••••</size><size=0.3>";
+
+            MaxPointerPosition = total;
+            text += "</size>";
+            if (!string.IsNullOrEmpty(ToolTipText)) text += $"\n \n<size=0.2>{ToolTipText}</size>";
+
+            foreach (var tmp in ModMangerTextList) tmp.text = text;
+        }
+
+        #endregion
+
+        #region GUI
 
         private void OnGUI()
         {
             if (gradientStyle == null)
             {
-                gradientStyle = new GUIStyle(GUI.skin.label);
-                gradientStyle.richText = true;
-                gradientStyle.fontSize = 20;
-                gradientStyle.alignment = TextAnchor.MiddleCenter;
+                gradientStyle = new GUIStyle(GUI.skin.label)
+                {
+                    richText = true,
+                    fontSize = 20,
+                    alignment = TextAnchor.MiddleCenter
+                };
             }
 
             if (PCControlActive)
+                GUI.Label(new Rect(10, Screen.height - 30, 400, 30),
+                    "<b>" + Extra.GradientText("SB PC Control Active", Theme1, Theme2, ThemeFadeSpeed) + "</b>",
+                    gradientStyle);
+
+            if (!ShowGUIMenu) return;
+
+            var ev = Event.current;
+            if (ev.type == EventType.MouseDown && menuRect.Contains(ev.mousePosition)) { dragging = true; dragOffset = ev.mousePosition - new Vector2(menuRect.x, menuRect.y); }
+            if (dragging && ev.type == EventType.MouseDrag) menuRect.position = ev.mousePosition - dragOffset;
+            if (dragging && ev.type == EventType.MouseUp) dragging = false;
+
+            var prev = GUI.color;
+            GUI.color = new Color(1f, 1f, 1f, 0.1f);
+            GUI.Box(menuRect, "");
+            GUI.color = prev;
+
+            GUILayout.BeginArea(menuRect);
+
+            float tipH = 40;
+            scrollPosition = GUILayout.BeginScrollView(scrollPosition, GUIStyle.none, GUIStyle.none,
+                GUILayout.Width(menuRect.width), GUILayout.Height(menuRect.height - tipH));
+
+            GUILayout.Label(Extra.GradientText("Several Bees", Theme1, Theme2, ThemeFadeSpeed) + "\n<size=8>` To Toggle</size>", gradientStyle);
+
+            string sec = SectionName;
+            if (Api.Instance.tokenList.ContainsValue(SectionName))
+                sec = Api.Instance.tokenList.FirstOrDefault(kv => kv.Value == SectionName).Key;
+            GUILayout.Label($"<color=grey>---</color> <size=14>{sec}</size> <color=grey>---</color>", gradientStyle);
+
+            var things = GetThings();
+            for (int i = 0; i < things.Count; i++)
             {
-                Rect rect = new Rect(10, Screen.height - 30, 400, 30);
-                string scrollingText = "<b>" + Extra.GradientText("SB PC Control Active", Theme1, Theme2, ThemeFadeSpeed) + "</b>";
-                GUI.Label(rect, scrollingText, gradientStyle);
+                var t = things[i];
+                if (t.mbi?.buttonOverlayText != null) t.Name = t.mbi.buttonOverlayText;
+                if (GUILayout.Button(t.Name, gradientStyle)) { PointerPositionIndex = i; MmSelect(true); }
             }
 
-            if (ShowGUIMenu)
+            GUILayout.EndScrollView();
+
+            if (!string.IsNullOrEmpty(ToolTipText))
             {
-                Event e = Event.current;
-
-                if (e.type == EventType.MouseDown && menuRect.Contains(e.mousePosition))
-                {
-                    dragging = true;
-                    dragOffset = new Vector2(e.mousePosition.x - menuRect.x, e.mousePosition.y - menuRect.y);
-                }
-                if (dragging)
-                {
-                    if (e.type == EventType.MouseDrag)
-                    {
-                        menuRect.position = e.mousePosition - dragOffset;
-                    }
-                    if (e.type == EventType.MouseUp)
-                    {
-                        dragging = false;
-                    }
-                }
-
-                Color prevColor = GUI.color;
-                GUI.color = new Color(1f, 1f, 1f, 0.1f);
-                GUI.Box(menuRect, "");
-                GUI.color = prevColor;
-
-                GUILayout.BeginArea(menuRect);
-
-                float tooltipHeight = 40;
-
-                scrollPosition = GUILayout.BeginScrollView(scrollPosition, GUIStyle.none, GUIStyle.none,
-                    GUILayout.Width(menuRect.width), GUILayout.Height(menuRect.height - tooltipHeight));
-
-                GUILayout.Label(Extra.GradientText("Several Bees", Theme1, Theme2, ThemeFadeSpeed) + "\n<size=8>` To Toggle</size>", gradientStyle);
-
-                string SectionName2 = SectionName;
-                if (Api.Instance.tokenList.ContainsValue(SectionName)) SectionName2 = Api.Instance.tokenList.FirstOrDefault(kvp => kvp.Value == SectionName).Key;
-                GUILayout.Label($"<color=grey>---</color> <size=14>" + SectionName2 + "</size> <color=grey>---</color>", gradientStyle);
-
-                List<Things> things = GetThings();
-                for (int i = 0; i < things.Count; i++)
-                {
-                    Things thing = things[i];
-
-                    if (thing.mbi != null && thing.mbi.buttonOverlayText != null)
-                        thing.Name = thing.mbi.buttonOverlayText;
-
-                    if (GUILayout.Button(thing.Name, gradientStyle))
-                    {
-                        PointerPositionIndex = i;
-                        MmSelect(true);
-                    }
-                }
-
-                GUILayout.EndScrollView();
-
-                if (!string.IsNullOrEmpty(ToolTipText))
-                {
-                    GUILayout.FlexibleSpace();
-                    GUILayout.Label($"<size=12>" + ToolTipText + "</size>", gradientStyle, GUILayout.Height(tooltipHeight));
-                }
-
-                GUILayout.EndArea();
+                GUILayout.FlexibleSpace();
+                GUILayout.Label($"<size=12>{ToolTipText}</size>", gradientStyle, GUILayout.Height(tipH));
             }
+
+            GUILayout.EndArea();
         }
+
+        #endregion
     }
+
+    #region Support Types
 
     internal class Things
     {
@@ -1713,4 +2158,35 @@ exit";
         public Color color = Color.white;
         public string name = "null";
     }
+
+    internal class ConfigEntry
+    {
+        public string Section;
+        public string Key;
+        public string Value;
+        public string Description;
+        public string AcceptableValues;
+        public string TypeName;
+        public string FilePath;
+    }
+
+    internal class InstalledMod
+    {
+        public string Name;
+        public string Path;
+        public bool OnDisk;
+        public PluginInfo PluginInfo;
+        public BaseUnityPlugin LiveInstance;
+        public bool? LiveEnabled;
+    }
+
+    internal class ModLoadout
+    {
+        public int Number;
+        public List<string> EnabledMods = new List<string>();
+        public List<string> DisabledMods = new List<string>();
+        public List<string> MissingMods = new List<string>();
+    }
+
+    #endregion
 }

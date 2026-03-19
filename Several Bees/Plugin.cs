@@ -22,28 +22,80 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEngine.Networking;
 using System.Collections;
+using System.Linq;
 
 namespace SeveralBees
 {
     [BepInPlugin("com.Sev.gorillatag.SeveralBees", "Several Bees", SeveralBees.Config.CurrentModVersion)]
     public class Plugin : BaseUnityPlugin
     {
+        private readonly string PluginDir = "https://raw.githubusercontent.com/sevvy-wevvy/Several-Bees/refs/heads/main/Plugins/Dir.txt";
 
         public static Plugin Instance { get; private set; }
 
         public List<Action> Startup = new List<Action>();
+        public List<string> PluginNames = new List<string>();
+        public bool PluginDirLoaded = false;
+
+        internal Dictionary<string, AudioClip> LoadedSounds = new Dictionary<string, AudioClip>();
+
+        private string appName;
+        private GameObject svrlbs = null;
 
         private async void Awake()
         {
-            UnityEngine.Debug.Log("[Several Bees] Plugin Awake");
+            appName = UnityEngine.Application.productName.Replace(" ", "").ToLowerInvariant();
+            UnityEngine.Debug.Log("[Several Bees] Awake " + appName);
             Instance = this;
-            UnityEngine.Debug.Log("[Several Bees] Plugin Instance Set");
 
-            try { StartCoroutine(LoadWav("https://github.com/sevvy-wevvy/Several-Bees/raw/refs/heads/main/Resources/Mod/click1.wav")); } catch (Exception e) { UnityEngine.Debug.LogError("[Several Bees] Error loading sound: " + e.Message); }
-            try { StartCoroutine(LoadWav("https://github.com/sevvy-wevvy/Several-Bees/raw/refs/heads/main/Resources/Mod/close.wav")); } catch (Exception e) { UnityEngine.Debug.LogError("[Several Bees] Error loading sound: " + e.Message); }
-            try { StartCoroutine(LoadWav("https://github.com/sevvy-wevvy/Several-Bees/raw/refs/heads/main/Resources/Mod/open.wav")); } catch (Exception e) { UnityEngine.Debug.LogError("[Several Bees] Error loading sound: " + e.Message); }
+            try { StartCoroutine(LoadWav("https://github.com/sevvy-wevvy/Several-Bees/raw/refs/heads/main/Resources/Mod/click1.wav")); } catch (Exception e) { UnityEngine.Debug.LogError("[Several Bees] " + e.Message); }
+            try { StartCoroutine(LoadWav("https://github.com/sevvy-wevvy/Several-Bees/raw/refs/heads/main/Resources/Mod/close.wav")); } catch (Exception e) { UnityEngine.Debug.LogError("[Several Bees] " + e.Message); }
+            try { StartCoroutine(LoadWav("https://github.com/sevvy-wevvy/Several-Bees/raw/refs/heads/main/Resources/Mod/open.wav")); } catch (Exception e) { UnityEngine.Debug.LogError("[Several Bees] " + e.Message); }
+
+            StartCoroutine(LoadPluginDirectory());
 
             SeveralBees.Config.StartupTriggerThing();
+        }
+
+        private IEnumerator LoadPluginDirectory()
+        {
+            var url = PluginDir + "?date=" + DateTime.UtcNow.ToString("yyyyMMddHHmmss");
+
+            using (UnityWebRequest request = UnityWebRequest.Get(url))
+            {
+                yield return request.SendWebRequest();
+
+                if (request.result != UnityWebRequest.Result.Success)
+                {
+                    UnityEngine.Debug.LogError("[Several Bees] Plugin dir fetch failed: " + request.error);
+                    PluginDirLoaded = true;
+                    yield break;
+                }
+
+                var lines = request.downloadHandler.text.Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+
+                foreach (var line in lines)
+                {
+                    var parts = line.Split(';').ToList();
+                    if (parts.Count != 2) continue;
+
+                    if (!parts[0].Trim().Equals(appName, StringComparison.OrdinalIgnoreCase)) continue;
+
+                    PluginNames = parts[1]
+                        .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                        .Select(p => p.Trim())
+                        .Where(p => !string.IsNullOrEmpty(p))
+                        .ToList();
+
+                    UnityEngine.Debug.Log("[Several Bees] Plugins: " + string.Join(", ", PluginNames));
+                    break;
+                }
+
+                if (PluginNames.Count == 0)
+                    UnityEngine.Debug.LogWarning("[Several Bees] No plugins found for app: " + appName);
+            }
+
+            PluginDirLoaded = true;
         }
 
         internal async void CustomStart()
@@ -56,20 +108,16 @@ namespace SeveralBees
                 svrlbs.AddComponent<Api>();
                 svrlbs.AddComponent<ModBrowser>();
                 svrlbs.AddComponent<CustonMenuAPI>();
-                UnityEngine.Debug.Log("[Several Bees] SeveralBees Object Created");
+                UnityEngine.Debug.Log("[Several Bees] Core created");
                 AssetLoader.LoadAssets();
                 foreach (var action in Startup)
                 {
-                    try
-                    {
-                        action();
-                    }
-                    catch (Exception ex)
-                    {
-                        UnityEngine.Debug.LogError("[Several Bees] Error executing startup action: " + ex.Message);
-                    }
+                    try { action(); }
+                    catch (Exception ex) { UnityEngine.Debug.LogError("[Several Bees] Startup action: " + ex.Message); }
                 }
-            } catch { }
+                Startup.Clear();
+            }
+            catch { }
 
             try
             {
@@ -77,53 +125,35 @@ namespace SeveralBees
                 using (HttpClient client = new HttpClient())
                 {
                     var content = await client.GetStringAsync(url);
-                    var latestVersion = content.Trim();
-                    SeveralBeesCore.Instance.IsLatestVersion = (latestVersion == global::SeveralBees.Config.CurrentModVersion);
+                    SeveralBeesCore.Instance.IsLatestVersion = content.Trim() == global::SeveralBees.Config.CurrentModVersion;
                 }
             }
             catch { }
-
         }
-
-        GameObject svrlbs = null;
-
-        internal Dictionary<string, AudioClip> LoadedSounds = new Dictionary<string, AudioClip>();
 
         internal IEnumerator LoadWav(string fileLink)
         {
             if (string.IsNullOrEmpty(fileLink) || !fileLink.EndsWith(".wav", StringComparison.OrdinalIgnoreCase)) yield break;
-
             if (LoadedSounds.ContainsKey(fileLink)) yield break;
 
             string basePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Several Bees", "Resources", "Sounds");
+            if (!Directory.Exists(basePath)) Directory.CreateDirectory(basePath);
 
-            if (!Directory.Exists(basePath))
-                Directory.CreateDirectory(basePath);
-
-            string fileName = Path.GetFileName(fileLink);
-            string fullPath = Path.Combine(basePath, fileName);
+            string fullPath = Path.Combine(basePath, Path.GetFileName(fileLink));
 
             using (UnityWebRequest www = UnityWebRequest.Get(fileLink))
             {
                 yield return www.SendWebRequest();
-
-                if (www.result != UnityWebRequest.Result.Success)
-                    yield break;
-
+                if (www.result != UnityWebRequest.Result.Success) yield break;
                 File.WriteAllBytes(fullPath, www.downloadHandler.data);
             }
 
             using (UnityWebRequest www = UnityWebRequestMultimedia.GetAudioClip("file://" + fullPath, AudioType.WAV))
             {
                 yield return www.SendWebRequest();
-
-                if (www.result != UnityWebRequest.Result.Success)
-                    yield break;
-
-                AudioClip clip = DownloadHandlerAudioClip.GetContent(www);
-                LoadedSounds[fileLink] = clip;
+                if (www.result != UnityWebRequest.Result.Success) yield break;
+                LoadedSounds[fileLink] = DownloadHandlerAudioClip.GetContent(www);
             }
         }
-
     }
 }
