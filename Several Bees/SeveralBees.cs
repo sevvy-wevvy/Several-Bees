@@ -196,7 +196,7 @@ namespace SeveralBees
                     string tag = await ModBrowser.Instance.GetGitHubTagAsync(link);
                     string saved = PlayerPrefs.GetString("SBPluginVer_" + link, "");
                     if (saved == tag) continue;
-                    InstallModAndInjectPlugin(link, "SBPlugin_" + ModBrowser.Instance.GetModName(link));
+                    InstallModAndInjectPlugin(link, ModBrowser.Instance.GetModName(link));
                     PlayerPrefs.SetString("SBPluginVer_" + link, tag);
                 }
                 catch { }
@@ -241,9 +241,9 @@ namespace SeveralBees
 
                     var plugin = (BaseUnityPlugin)go.AddComponent(type);
                     var info = new PluginInfo();
-                    typeof(PluginInfo).GetProperty("Metadata")?.SetValue(info, meta);
-                    typeof(PluginInfo).GetProperty("Instance")?.SetValue(info, plugin);
-                    typeof(BaseUnityPlugin).GetProperty("Info", BindingFlags.NonPublic | BindingFlags.Instance)?.SetValue(plugin, info);
+                    typeof(PluginInfo).GetProperty("Metadata", BindingFlags.Public | BindingFlags.Instance)?.SetValue(info, meta);
+                    typeof(PluginInfo).GetProperty("Instance", BindingFlags.Public | BindingFlags.Instance)?.SetValue(info, plugin);
+                    typeof(BaseUnityPlugin).GetProperty("Info", BindingFlags.Public | BindingFlags.Instance)?.SetValue(plugin, info);
                 }
 
                 foreach (var action in Plugin.Instance.Startup)
@@ -596,8 +596,8 @@ namespace SeveralBees
             if (SectionName == "Main")
             {
                 foreach (var kv in Api.Instance.tokenList)
-                    if (Api.Instance.tokenListVisable[kv.Value])
-                        things.Add(new Things { Name = kv.Key, Enterable = true, Token = kv.Value });
+                    if (Api.Instance.tokenListVisable[kv.Key])
+                        things.Add(new Things { Name = kv.Value, Enterable = true, Token = kv.Key });
                 return things;
             }
 
@@ -639,7 +639,7 @@ namespace SeveralBees
         {
             try
             {
-                Api.Instance.tokenList.Add("Settings", "1");
+                Api.Instance.tokenList.Add("1", "Settings");
                 Api.Instance.tokenListVisable.Add("1", true);
                 Api.Instance.tokenListBackToken.Add("1", "Main");
                 Api.Instance.tokenListButtonInfo["1"] = new List<ModButtonInfo>
@@ -650,7 +650,7 @@ namespace SeveralBees
                     new ModButtonInfo { buttonText = "<color=green>Donate</color>",   method = () => Process.Start(new ProcessStartInfo { FileName = "https://sevvy-wevvy.com/donate/", UseShellExecute = true }), toolTip = "Lets you donate to me." },
                 };
 
-                Api.Instance.tokenList.Add("Theme", "2");
+                Api.Instance.tokenList.Add("2", "Theme");
                 Api.Instance.tokenListVisable.Add("2", false);
                 Api.Instance.tokenListBackToken.Add("2", "1");
                 Api.Instance.tokenListButtonInfo["2"] = new List<ModButtonInfo>
@@ -661,7 +661,7 @@ namespace SeveralBees
                     new ModButtonInfo { buttonText = "nsc", method = () => Settings.nsc(), toolTip = "Changes the second fade color." },
                 };
 
-                Api.Instance.tokenList.Add("Theme Presets", "3");
+                Api.Instance.tokenList.Add("3", "Theme Presets");
                 Api.Instance.tokenListVisable.Add("3", false);
                 Api.Instance.tokenListBackToken.Add("3", "2");
                 Api.Instance.tokenListButtonInfo["3"] = new List<ModButtonInfo>
@@ -691,7 +691,7 @@ namespace SeveralBees
                     new ModButtonInfo { buttonText = "Cobalt",    buttonOverlayText = "<color=#0000FF>C</color><color=#3333FF>o</color><color=#6666FF>b</color><color=#9999FF>a</color><color=#CCCCFF>l</color><color=#FFFFFF>t</color>",                                                                                                             method = () => Extra.Instance.SetTheme(CycleColors[5].color,  CycleColors[14].color, 0.2f), toolTip = "Blue and navy."       },
                 };
 
-                Api.Instance.tokenList.Add("Mods", "4");
+                Api.Instance.tokenList.Add("4", "Mods");
                 Api.Instance.tokenListVisable.Add("4", true);
                 Api.Instance.tokenListBackToken.Add("4", "Main");
                 Api.Instance.tokenListButtonInfo["4"] = new List<ModButtonInfo>
@@ -702,27 +702,27 @@ namespace SeveralBees
                     new ModButtonInfo { buttonText = "Loadouts",       method = () => { RefreshLoadoutsMenu(); Api.Instance.OpenMenu("10"); },  toolTip = "Manage mod loadouts."                         },
                 };
 
-                Api.Instance.tokenList.Add("Install Mods", "11");
+                Api.Instance.tokenList.Add("11", "Install Mods");
                 Api.Instance.tokenListVisable.Add("11", false);
                 Api.Instance.tokenListBackToken.Add("11", "4");
                 Api.Instance.tokenListButtonInfo["11"] = new List<ModButtonInfo>();
 
-                Api.Instance.tokenList.Add("Mod Config", "6");
+                Api.Instance.tokenList.Add("6", "Mod Config");
                 Api.Instance.tokenListVisable.Add("6", false);
                 Api.Instance.tokenListBackToken.Add("6", "4");
                 Api.Instance.tokenListButtonInfo["6"] = new List<ModButtonInfo>();
 
-                Api.Instance.tokenList.Add("Mod Toggle", "9");
+                Api.Instance.tokenList.Add("9", "Mod Toggle");
                 Api.Instance.tokenListVisable.Add("9", false);
                 Api.Instance.tokenListBackToken.Add("9", "4");
                 Api.Instance.tokenListButtonInfo["9"] = new List<ModButtonInfo>();
 
-                Api.Instance.tokenList.Add("Loadouts", "10");
+                Api.Instance.tokenList.Add("10", "Loadouts");
                 Api.Instance.tokenListVisable.Add("10", false);
                 Api.Instance.tokenListBackToken.Add("10", "4");
                 Api.Instance.tokenListButtonInfo["10"] = new List<ModButtonInfo>();
 
-                Api.Instance.tokenList.Add("Credits", "7");
+                Api.Instance.tokenList.Add("7", "Credits");
                 Api.Instance.tokenListVisable.Add("7", false);
                 Api.Instance.tokenListBackToken.Add("7", "1");
                 Api.Instance.tokenListButtonInfo["7"] = new List<ModButtonInfo>
@@ -731,7 +731,7 @@ namespace SeveralBees
                     new ModButtonInfo { buttonText = "<color=grey>Skellon</color>",  toolTip = "Asset loader."      },
                 };
 
-                Api.Instance.tokenList.Add("<color=red>Update</color>", "NotNew");
+                Api.Instance.tokenList.Add("NotNew", "<color=red>Update</color>");
                 Api.Instance.tokenListVisable.Add("NotNew", false);
                 Api.Instance.tokenListBackToken.Add("NotNew", "NotNew");
                 Api.Instance.tokenListButtonInfo["NotNew"] = new List<ModButtonInfo>
@@ -747,7 +747,7 @@ namespace SeveralBees
                     }, toolTip = "Opens the Several Bees GitHub." },
                 };
 
-                Api.Instance.tokenList.Add("General Settings", "8");
+                Api.Instance.tokenList.Add("8", "General Settings");
                 Api.Instance.tokenListVisable.Add("8", false);
                 Api.Instance.tokenListBackToken.Add("8", "1");
                 var gen = new List<ModButtonInfo>
@@ -763,7 +763,7 @@ namespace SeveralBees
 
                 Api.Instance.tokenListButtonInfo["8"] = gen;
 
-                Api.Instance.tokenList.Add("<color=orange>Loading Plugins</color>", "LoadPlugins");
+                Api.Instance.tokenList.Add("LoadPlugins", "<color=orange>Loading Plugins</color>");
                 Api.Instance.tokenListVisable.Add("LoadPlugins", false);
                 Api.Instance.tokenListBackToken.Add("LoadPlugins", "LoadPlugins");
                 Api.Instance.tokenListButtonInfo["LoadPlugins"] = new List<ModButtonInfo>
@@ -941,11 +941,14 @@ namespace SeveralBees
             }
 
             string token = "cfg_" + modName;
-            Api.Instance.tokenList[modName] = token;
+            Api.Instance.tokenList[token] = modName;
             if (!Api.Instance.tokenListVisable.ContainsKey(token)) Api.Instance.tokenListVisable[token] = false;
             if (!Api.Instance.tokenListBackToken.ContainsKey(token)) Api.Instance.tokenListBackToken[token] = "6";
+
+            int savedIndex = SectionName == token ? PointerPositionIndex : 0;
             Api.Instance.tokenListButtonInfo[token] = buttons;
             Api.Instance.OpenMenu(token);
+            PointerPositionIndex = Mathf.Clamp(savedIndex, 0, buttons.Count - 1);
         }
 
         private void WriteConfigValue(string filePath, string section, string key, string value)
@@ -1156,74 +1159,136 @@ namespace SeveralBees
             {
                 if (enable && File.Exists(disabledPath))
                 {
+                    SetToolTip($"<color=orange>Enabling {modName}...</color>");
                     if (File.Exists(dllPath)) File.Delete(dllPath);
                     File.Move(disabledPath, dllPath);
-                    Api.Instance.tokenListButtonInfo[modLink] = new List<ModButtonInfo> { new ModButtonInfo { buttonText = "<color=green>Enabled</color>", toolTip = "Restart to apply." } };
+                    SetToolTip($"<color=green>{modName} enabled. Restart to apply.</color>");
                 }
                 else if (!enable && File.Exists(dllPath))
                 {
+                    SetToolTip($"<color=orange>Disabling {modName}...</color>");
                     if (File.Exists(disabledPath)) File.Delete(disabledPath);
                     File.Move(dllPath, disabledPath);
-                    Api.Instance.tokenListButtonInfo[modLink] = new List<ModButtonInfo> { new ModButtonInfo { buttonText = "<color=yellow>Disabled</color>", toolTip = "Restart to apply." } };
+                    SetToolTip($"<color=yellow>{modName} disabled. Restart to apply.</color>");
                 }
+
+                var mod = sbModCache.FirstOrDefault(m => m.DllName == modName + ".dll");
+                if (mod != null) SbOpenModPage(mod);
 
                 if (Api.Instance.GrabButton("8", "Restart On Mod").enabled) RestartApp();
             }
             catch (Exception ex)
             {
                 UnityEngine.Debug.LogError("[Several Bees] Toggle error: " + ex.Message);
+                SetToolTip($"<color=red>Toggle failed: {ex.Message}</color>");
             }
         }
 
-        internal void InstallMod(string modLink, string modName)
+        internal async void InstallMod(string modLink, string modName)
         {
+            UnityEngine.Debug.Log($"[Several Bees] InstallMod — link: {modLink} | name: {modName}");
+
             string pluginsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "BepInEx", "plugins");
             if (!Directory.Exists(pluginsPath)) Directory.CreateDirectory(pluginsPath);
-
             string tempFile = Path.Combine(Path.GetTempPath(), modName + ".dll");
 
-            using (var client = new System.Net.WebClient())
+            SetToolTip($"<color=orange>Starting download for {modName}...</color>");
+
+            try
             {
-                client.DownloadProgressChanged += (s, e) => SetToolTip($"<color=orange>Installing {modName}... {e.ProgressPercentage}%</color>");
-                client.DownloadFileAsync(new Uri(modLink), tempFile);
-                while (client.IsBusy) Thread.Sleep(100);
+                using (var client = new System.Net.WebClient())
+                {
+                    client.DownloadProgressChanged += (s, e) =>
+                        SetToolTip($"<color=orange>Downloading {modName}... {e.ProgressPercentage}%</color>");
+                    await client.DownloadFileTaskAsync(new Uri(modLink), tempFile);
+                }
+            }
+            catch (Exception ex)
+            {
+                UnityEngine.Debug.LogError($"[Several Bees] InstallMod download failed: {ex.Message}");
+                SetToolTip($"<color=red>Download failed: {ex.Message}</color>");
+                return;
             }
 
-            string dest = Path.Combine(pluginsPath, modName + ".dll");
-            if (File.Exists(dest)) File.Delete(dest);
-            File.Move(tempFile, dest);
+            SetToolTip($"<color=orange>Download complete. Installing {modName}...</color>");
+
+            try
+            {
+                string dest = Path.Combine(pluginsPath, modName + ".dll");
+                if (File.Exists(dest)) File.Delete(dest);
+                File.Move(tempFile, dest);
+                UnityEngine.Debug.Log($"[Several Bees] Installed to: {dest}");
+            }
+            catch (Exception ex)
+            {
+                UnityEngine.Debug.LogError($"[Several Bees] InstallMod file move failed: {ex.Message}");
+                SetToolTip($"<color=red>Install failed: {ex.Message}</color>");
+                return;
+            }
 
             string repoUrl = sbModCache.FirstOrDefault(m => m.DllName == modName + ".dll")?.RepoUrl ?? modLink;
             modUpdateAvailable.Remove(repoUrl);
             SbSaveVersionAsync(repoUrl, modLink);
-            SetToolTip($"<color=green>{modName} installed.</color>");
+
+            SetToolTip($"<color=green>{modName} installed!</color>");
+            var installedMod = sbModCache.FirstOrDefault(m => m.DllName == modName + ".dll");
+            if (installedMod != null) SbOpenModPage(installedMod);
 
             if (!Api.Instance.GrabButton("8", "Restart On Mod").enabled) return;
+            SetToolTip($"<color=green>{modName} installed! Restarting...</color>");
             RestartApp();
         }
 
-        internal void InstallModAndInject(string modLink, string modName)
+        internal async void InstallModAndInject(string modLink, string modName)
         {
+            UnityEngine.Debug.Log($"[Several Bees] InstallModAndInject — link: {modLink} | name: {modName}");
+
             string pluginsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "BepInEx", "plugins");
             if (!Directory.Exists(pluginsPath)) Directory.CreateDirectory(pluginsPath);
-
             string dllPath = Path.Combine(pluginsPath, modName + ".dll");
             if (File.Exists(dllPath)) File.Delete(dllPath);
 
-            SetToolTip($"<color=orange>Installing {modName}...</color>");
+            SetToolTip($"<color=orange>Starting download for {modName}...</color>");
 
-            using (var client = new System.Net.WebClient())
+            try
             {
-                client.DownloadFileAsync(new Uri(modLink), dllPath);
-                while (client.IsBusy) Thread.Sleep(100);
+                using (var client = new System.Net.WebClient())
+                {
+                    client.DownloadProgressChanged += (s, e) =>
+                        SetToolTip($"<color=orange>Downloading {modName}... {e.ProgressPercentage}%</color>");
+                    await client.DownloadFileTaskAsync(new Uri(modLink), dllPath);
+                }
+            }
+            catch (Exception ex)
+            {
+                UnityEngine.Debug.LogError($"[Several Bees] InstallModAndInject download failed: {ex.Message}");
+                SetToolTip($"<color=red>Download failed: {ex.Message}</color>");
+                return;
             }
 
-            TryInjectAssembly(dllPath);
+            SetToolTip($"<color=orange>Download done. Injecting {modName}...</color>");
+            UnityEngine.Debug.Log($"[Several Bees] Injecting: {dllPath}");
+
+            try
+            {
+                TryInjectAssembly(dllPath);
+            }
+            catch (Exception ex)
+            {
+                UnityEngine.Debug.LogError($"[Several Bees] Inject failed: {ex.Message}");
+                SetToolTip($"<color=red>Inject failed: {ex.Message}</color>");
+                return;
+            }
 
             string repoUrl = sbModCache.FirstOrDefault(m => m.DllName == modName + ".dll")?.RepoUrl ?? modLink;
             modUpdateAvailable.Remove(repoUrl);
             SbSaveVersionAsync(repoUrl, modLink);
-            SetToolTip($"<color=green>{modName} installed and loaded.</color>");
+
+            SetToolTip($"<color=green>{modName} installed and loaded!</color>");
+            UnityEngine.Debug.Log($"[Several Bees] InstallModAndInject complete: {dllPath}");
+
+            var installedMod = sbModCache.FirstOrDefault(m => m.DllName == modName + ".dll");
+            if (installedMod != null) SbOpenModPage(installedMod);
         }
 
         internal void UninstallMod(string modName, string modLink)
@@ -1235,25 +1300,42 @@ namespace SeveralBees
             string target = File.Exists(dllPath) ? dllPath : File.Exists(disabledPath) ? disabledPath : null;
             if (target == null) { SetToolTip($"<color=red>{modName} not found on disk.</color>"); return; }
 
-            string deletePath = target + ".delete";
-            if (File.Exists(deletePath)) File.Delete(deletePath);
-            File.Move(target, deletePath);
+            SetToolTip($"<color=orange>Uninstalling {modName}...</color>");
+
+            try
+            {
+                string deletePath = target + ".delete";
+                if (File.Exists(deletePath)) File.Delete(deletePath);
+                File.Move(target, deletePath);
+            }
+            catch (Exception ex)
+            {
+                UnityEngine.Debug.LogError($"[Several Bees] Uninstall failed: {ex.Message}");
+                SetToolTip($"<color=red>Uninstall failed: {ex.Message}</color>");
+                return;
+            }
 
             string repoUrl = sbModCache.FirstOrDefault(m => m.DllName == modName + ".dll")?.RepoUrl ?? modLink;
             PlayerPrefs.DeleteKey("SBModVer_" + repoUrl);
             modUpdateAvailable.Remove(repoUrl);
+
             SetToolTip($"<color=green>{modName} uninstalled.</color>");
+            var uninstalledMod = sbModCache.FirstOrDefault(m => m.DllName == modName + ".dll");
+            if (uninstalledMod != null) SbOpenModPage(uninstalledMod);
 
             if (!Api.Instance.GrabButton("8", "Restart On Mod").enabled) return;
+            SetToolTip($"<color=green>{modName} uninstalled. Restarting...</color>");
             RestartApp();
         }
 
-        internal void InstallLatestMod(string modLink, string modName)
+        internal async void InstallLatestMod(string modLink, string modName)
         {
             string pluginsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "BepInEx", "plugins");
             string dllPath = Path.Combine(pluginsPath, modName + ".dll");
 
             if (!File.Exists(dllPath)) { SetToolTip($"<color=red>{modName}.dll not found.</color>"); return; }
+
+            SetToolTip($"<color=orange>Preparing update for {modName}...</color>");
 
             string deletePath = dllPath + ".delete";
             if (File.Exists(deletePath)) File.Delete(deletePath);
@@ -1262,23 +1344,49 @@ namespace SeveralBees
             if (!Directory.Exists(pluginsPath)) Directory.CreateDirectory(pluginsPath);
             string tempFile = Path.Combine(Path.GetTempPath(), modName + ".dll");
 
-            using (var client = new System.Net.WebClient())
+            try
             {
-                client.DownloadProgressChanged += (s, e) => SetToolTip($"<color=orange>Updating {modName}... {e.ProgressPercentage}%</color>");
-                client.DownloadFileAsync(new Uri(modLink), tempFile);
-                while (client.IsBusy) Thread.Sleep(100);
+                using (var client = new System.Net.WebClient())
+                {
+                    client.DownloadProgressChanged += (s, e) =>
+                        SetToolTip($"<color=orange>Downloading update for {modName}... {e.ProgressPercentage}%</color>");
+                    await client.DownloadFileTaskAsync(new Uri(modLink), tempFile);
+                }
+            }
+            catch (Exception ex)
+            {
+                UnityEngine.Debug.LogError($"[Several Bees] InstallLatestMod download failed: {ex.Message}");
+                SetToolTip($"<color=red>Update download failed: {ex.Message}</color>");
+                if (File.Exists(deletePath)) File.Move(deletePath, dllPath);
+                return;
             }
 
-            string dest = Path.Combine(pluginsPath, modName + ".dll");
-            if (File.Exists(dest)) File.Delete(dest);
-            File.Move(tempFile, dest);
+            SetToolTip($"<color=orange>Download complete. Installing update for {modName}...</color>");
+
+            try
+            {
+                string dest = Path.Combine(pluginsPath, modName + ".dll");
+                if (File.Exists(dest)) File.Delete(dest);
+                File.Move(tempFile, dest);
+            }
+            catch (Exception ex)
+            {
+                UnityEngine.Debug.LogError($"[Several Bees] InstallLatestMod file move failed: {ex.Message}");
+                SetToolTip($"<color=red>Update install failed: {ex.Message}</color>");
+                if (File.Exists(deletePath)) File.Move(deletePath, dllPath);
+                return;
+            }
 
             string repoUrl = sbModCache.FirstOrDefault(m => m.DllName == modName + ".dll")?.RepoUrl ?? modLink;
             modUpdateAvailable.Remove(repoUrl);
             SbSaveVersionAsync(repoUrl, modLink);
-            SetToolTip($"<color=green>{modName} updated.</color>");
+
+            SetToolTip($"<color=green>{modName} updated!</color>");
+            var updatedMod = sbModCache.FirstOrDefault(m => m.DllName == modName + ".dll");
+            if (updatedMod != null) SbOpenModPage(updatedMod);
 
             if (!Api.Instance.GrabButton("8", "Restart On Mod").enabled) return;
+            SetToolTip($"<color=green>{modName} updated! Restarting...</color>");
             RestartApp();
         }
 
@@ -1340,7 +1448,13 @@ namespace SeveralBees
             int start = idx + search.Length;
             int end = start;
             while (end < json.Length && json[end] != '"') { if (json[end] == '\\') end++; end++; }
-            return json.Substring(start, end - start);
+            return json.Substring(start, end - start)
+                .Replace("\\/", "/")
+                .Replace("\\\"", "\"")
+                .Replace("\\\\", "\\")
+                .Replace("\\n", "\n")
+                .Replace("\\r", "")
+                .Replace("\\t", "\t");
         }
 
         private bool SbJsonBool(string json, string key)
@@ -1571,18 +1685,73 @@ namespace SeveralBees
             }
             else
             {
-                buttons.Add(new ModButtonInfo
+                if (mod.IsVerified)
                 {
-                    buttonText = "<color=green>Install</color>",
-                    toolTip = mod.IsVerified ? $"Installs {mod.Name}." : $"{mod.Name} is unverified. Proceed?",
-                    method = () =>
+                    buttons.Add(new ModButtonInfo
                     {
-                        if (!mod.IsVerified)
-                            SetToolTip($"<color=yellow>[Unverified]</color> Select Install again to confirm.");
-                        string dlUrl = mod.RepoUrl.TrimEnd('/') + "/releases/latest/download/" + mod.DllName;
-                        InstallMod(dlUrl, mod.DllName.Replace(".dll", ""));
-                    }
-                });
+                        buttonText = "<color=green>Install</color>",
+                        toolTip = $"Downloads and installs {mod.Name}. Requires restart.",
+                        method = () =>
+                        {
+                            string dlUrl = mod.RepoUrl.TrimEnd('/') + "/releases/latest/download/" + mod.DllName;
+                            UnityEngine.Debug.Log($"[Several Bees] Install button clicked — RepoUrl: {mod.RepoUrl} | DllName: {mod.DllName} | Built URL: {dlUrl}");
+                            InstallMod(dlUrl, mod.DllName.Replace(".dll", ""));
+                        }
+                    });
+                    buttons.Add(new ModButtonInfo
+                    {
+                        buttonText = "<color=green>Install & Inject</color>",
+                        toolTip = $"Downloads, installs, and hot-loads {mod.Name} without restarting.",
+                        method = () =>
+                        {
+                            string dlUrl = mod.RepoUrl.TrimEnd('/') + "/releases/latest/download/" + mod.DllName;
+                            UnityEngine.Debug.Log($"[Several Bees] Install & Inject button clicked — RepoUrl: {mod.RepoUrl} | DllName: {mod.DllName} | Built URL: {dlUrl}");
+                            InstallModAndInject(dlUrl, mod.DllName.Replace(".dll", ""));
+                        }
+                    });
+                }
+                else
+                {
+                    bool[] confirmed = { false };
+                    buttons.Add(new ModButtonInfo
+                    {
+                        buttonText = "<color=yellow>Install (Unverified)</color>",
+                        toolTip = $"{mod.Name} is unverified. Select again to confirm install.",
+                        method = () =>
+                        {
+                            if (!confirmed[0])
+                            {
+                                confirmed[0] = true;
+                                SetToolTip($"<color=yellow>[Unverified]</color> Select Install again to confirm.");
+                            }
+                            else
+                            {
+                                string dlUrl = mod.RepoUrl.TrimEnd('/') + "/releases/latest/download/" + mod.DllName;
+                                UnityEngine.Debug.Log($"[Several Bees] Install (unverified confirmed) — RepoUrl: {mod.RepoUrl} | DllName: {mod.DllName} | Built URL: {dlUrl}");
+                                InstallMod(dlUrl, mod.DllName.Replace(".dll", ""));
+                            }
+                        }
+                    });
+                    buttons.Add(new ModButtonInfo
+                    {
+                        buttonText = "<color=yellow>Install & Inject (Unverified)</color>",
+                        toolTip = $"{mod.Name} is unverified. Select again to confirm hot-load.",
+                        method = () =>
+                        {
+                            if (!confirmed[0])
+                            {
+                                confirmed[0] = true;
+                                SetToolTip($"<color=yellow>[Unverified]</color> Select Install & Inject again to confirm.");
+                            }
+                            else
+                            {
+                                string dlUrl = mod.RepoUrl.TrimEnd('/') + "/releases/latest/download/" + mod.DllName;
+                                UnityEngine.Debug.Log($"[Several Bees] Install & Inject (unverified confirmed) — RepoUrl: {mod.RepoUrl} | DllName: {mod.DllName} | Built URL: {dlUrl}");
+                                InstallModAndInject(dlUrl, mod.DllName.Replace(".dll", ""));
+                            }
+                        }
+                    });
+                }
             }
 
             buttons.Add(new ModButtonInfo
@@ -1592,7 +1761,7 @@ namespace SeveralBees
                 method = () => Process.Start(new ProcessStartInfo { FileName = mod.RepoUrl, UseShellExecute = true })
             });
 
-            Api.Instance.tokenList[$"SB: {mod.Name}"] = token;
+            Api.Instance.tokenList[token] = $"SB: {mod.Name}";
             Api.Instance.tokenListButtonInfo[token] = buttons;
             Api.Instance.OpenMenu(token);
         }
@@ -1743,7 +1912,7 @@ namespace SeveralBees
             string token = "sb_validation";
             if (!Api.Instance.tokenListVisable.ContainsKey(token)) Api.Instance.tokenListVisable[token] = true;
             if (!Api.Instance.tokenListBackToken.ContainsKey(token)) Api.Instance.tokenListBackToken[token] = "4";
-            Api.Instance.tokenList["<color=red>⚠ Mod Issues</color>"] = token;
+            Api.Instance.tokenList[token] = "<color=red>⚠ Mod Issues</color>";
             Api.Instance.tokenListButtonInfo[token] = issues
                 .Select(i => new ModButtonInfo { buttonText = $"<color=red>⚠</color> {i}", toolTip = "This file may cause a crash. Consider removing it." })
                 .ToList();
@@ -2022,7 +2191,7 @@ namespace SeveralBees
             };
 
             Api.Instance.tokenListButtonInfo[token] = buttons;
-            Api.Instance.tokenList[$"Loadout {loadout.Number}"] = token;
+            Api.Instance.tokenList[token] = $"Loadout {loadout.Number}";
             Api.Instance.OpenMenu(token);
         }
 
@@ -2048,7 +2217,7 @@ namespace SeveralBees
                 buttons.Add(new ModButtonInfo { buttonText = "<color=grey>No mods recorded.</color>", toolTip = "" });
 
             Api.Instance.tokenListButtonInfo[token] = buttons;
-            Api.Instance.tokenList[$"Loadout {loadout.Number} Mods"] = token;
+            Api.Instance.tokenList[token] = $"Loadout {loadout.Number} Mods";
             Api.Instance.OpenMenu(token);
         }
 
@@ -2332,7 +2501,7 @@ exit";
 
             try
             {
-                foreach (string token in Api.Instance.tokenList.Values)
+                foreach (string token in Api.Instance.tokenList.Keys)
                     foreach (var mbi in Api.Instance.tokenListButtonInfo[token])
                         if (mbi.enabled && mbi.isTogglable) mbi.method?.Invoke();
             }
@@ -2342,8 +2511,8 @@ exit";
         private void BuildDisplayText()
         {
             string sectionLabel = SectionName;
-            if (Api.Instance.tokenList.ContainsValue(SectionName))
-                sectionLabel = Api.Instance.tokenList.FirstOrDefault(kv => kv.Value == SectionName).Key;
+            if (Api.Instance.tokenList.ContainsKey(SectionName))
+                sectionLabel = Api.Instance.tokenList[SectionName];
 
             string text = Extra.GradientText("Several Bees", Theme1, Theme2, ThemeFadeSpeed)
                         + $"\n<color=grey>---</color> <size=0.35>{sectionLabel}</size> <color=grey>---</color>\n <size=0.3>";
@@ -2414,8 +2583,8 @@ exit";
             GUILayout.Label(Extra.GradientText("Several Bees", Theme1, Theme2, ThemeFadeSpeed) + "\n<size=8>` To Toggle</size>", gradientStyle);
 
             string sec = SectionName;
-            if (Api.Instance.tokenList.ContainsValue(SectionName))
-                sec = Api.Instance.tokenList.FirstOrDefault(kv => kv.Value == SectionName).Key;
+            if (Api.Instance.tokenList.ContainsKey(SectionName))
+                sec = Api.Instance.tokenList[SectionName];
             GUILayout.Label($"<color=grey>---</color> <size=14>{sec}</size> <color=grey>---</color>", gradientStyle);
 
             var things = GetThings();

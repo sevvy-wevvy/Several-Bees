@@ -41,7 +41,7 @@ namespace SeveralBees
 
 
 
-        internal Dictionary<string, string> tokenList = new Dictionary<string, string>();
+        internal Dictionary<string, string> tokenList = new Dictionary<string, string>(); // key=token, value=displayName
         internal Dictionary<string, bool> tokenListVisable = new Dictionary<string, bool>();
         internal Dictionary<string, string> tokenListBackToken = new Dictionary<string, string>();
         internal Dictionary<string, List<ModButtonInfo>> tokenListButtonInfo = new Dictionary<string, List<ModButtonInfo>>();
@@ -60,9 +60,9 @@ namespace SeveralBees
             do
             {
                 token = GenerateRandomToken();
-            } while (tokenList.ContainsValue(token));
+            } while (tokenList.ContainsKey(token));
 
-            tokenList[Name] = token;
+            tokenList[token] = Name;
             tokenListVisable[token] = Visable;
             tokenListBackToken[token] = Back;
             tokenListButtonInfo[token] = new List<ModButtonInfo>();

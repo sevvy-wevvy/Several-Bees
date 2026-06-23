@@ -76,7 +76,7 @@ namespace SeveralBees
         public string GetTabName()
         {
             string SectionName2 = SeveralBeesCore.Instance.SectionName;
-            if (Api.Instance.tokenList.ContainsValue(SeveralBeesCore.Instance.SectionName)) SectionName2 = Api.Instance.tokenList.FirstOrDefault(kvp => kvp.Value == SeveralBeesCore.Instance.SectionName).Key;
+            if (Api.Instance.tokenList.ContainsKey(SeveralBeesCore.Instance.SectionName)) SectionName2 = Api.Instance.tokenList[SeveralBeesCore.Instance.SectionName];
             
             return SectionName2;
         }
