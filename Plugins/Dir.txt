@@ -1,2 +1,2 @@
-gorillatag;https://github.com/sevvy-wevvy/Sevs-Stupid-Gorilla-Tag-Addons/releases/latest/download/SSGTA.dll
+gorillatag;https://github.com/sevvy-wevvy/Sevs-Stupid-Gorilla-Tag-Addons/releases/latest/download/SSGTA.dll,https://github.com/sevvy-wevvy/Sevs-Better-Nametags/releases/latest/download/Sevs.Better.Nametags.dll
 
